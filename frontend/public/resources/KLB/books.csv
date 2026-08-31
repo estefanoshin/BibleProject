@@ -1,0 +1,67 @@
+book_id,name,version
+1,Génesis,KLB
+2,Éxodo,KLB
+3,Levítico,KLB
+4,Números,KLB
+5,Deuteronomio,KLB
+6,Josué,KLB
+7,Jueces,KLB
+8,Rut,KLB
+9,1 Samuel,KLB
+10,2 Samuel,KLB
+11,1 Reyes,KLB
+12,2 Reyes,KLB
+13,1 Crónicas,KLB
+14,2 Crónicas,KLB
+15,Esdras,KLB
+16,Nehemías,KLB
+17,Ester,KLB
+18,Job,KLB
+19,Salmos,KLB
+20,Proverbios,KLB
+21,Eclesiastés,KLB
+22,Cantares,KLB
+23,Isaías,KLB
+24,Jeremías,KLB
+25,Lamentaciones,KLB
+26,Ezequiel,KLB
+27,Daniel,KLB
+28,Oseas,KLB
+29,Joel,KLB
+30,Amós,KLB
+31,Abdías,KLB
+32,Jonás,KLB
+33,Miqueas,KLB
+34,Nahúm,KLB
+35,Habacuc,KLB
+36,Sofonías,KLB
+37,Hageo,KLB
+38,Zacarías,KLB
+39,Malaquías,KLB
+40,Mateo,KLB
+41,Marcos,KLB
+42,Lucas,KLB
+43,Juan,KLB
+44,Hechos,KLB
+45,Romanos,KLB
+46,1 Corintios,KLB
+47,2 Corintios,KLB
+48,Gálatas,KLB
+49,Efesios,KLB
+50,Filipenses,KLB
+51,Colosenses,KLB
+52,1 Tesalonicenses,KLB
+53,2 Tesalonicenses,KLB
+54,1 Timoteo,KLB
+55,2 Timoteo,KLB
+56,Tito,KLB
+57,Filemón,KLB
+58,Hebreos,KLB
+59,Santiago,KLB
+60,1 Pedro,KLB
+61,2 Pedro,KLB
+62,1 Juan,KLB
+63,2 Juan,KLB
+64,3 Juan,KLB
+65,Judas,KLB
+66,Apocalipsis,KLB

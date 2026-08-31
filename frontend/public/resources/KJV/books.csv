@@ -1,0 +1,67 @@
+book_id,name,version
+1,Génesis,KJV
+2,Éxodo,KJV
+3,Levítico,KJV
+4,Números,KJV
+5,Deuteronomio,KJV
+6,Josué,KJV
+7,Jueces,KJV
+8,Rut,KJV
+9,1 Samuel,KJV
+10,2 Samuel,KJV
+11,1 Reyes,KJV
+12,2 Reyes,KJV
+13,1 Crónicas,KJV
+14,2 Crónicas,KJV
+15,Esdras,KJV
+16,Nehemías,KJV
+17,Ester,KJV
+18,Job,KJV
+19,Salmos,KJV
+20,Proverbios,KJV
+21,Eclesiastés,KJV
+22,Cantares,KJV
+23,Isaías,KJV
+24,Jeremías,KJV
+25,Lamentaciones,KJV
+26,Ezequiel,KJV
+27,Daniel,KJV
+28,Oseas,KJV
+29,Joel,KJV
+30,Amós,KJV
+31,Abdías,KJV
+32,Jonás,KJV
+33,Miqueas,KJV
+34,Nahúm,KJV
+35,Habacuc,KJV
+36,Sofonías,KJV
+37,Hageo,KJV
+38,Zacarías,KJV
+39,Malaquías,KJV
+40,Mateo,KJV
+41,Marcos,KJV
+42,Lucas,KJV
+43,Juan,KJV
+44,Hechos,KJV
+45,Romanos,KJV
+46,1 Corintios,KJV
+47,2 Corintios,KJV
+48,Gálatas,KJV
+49,Efesios,KJV
+50,Filipenses,KJV
+51,Colosenses,KJV
+52,1 Tesalonicenses,KJV
+53,2 Tesalonicenses,KJV
+54,1 Timoteo,KJV
+55,2 Timoteo,KJV
+56,Tito,KJV
+57,Filemón,KJV
+58,Hebreos,KJV
+59,Santiago,KJV
+60,1 Pedro,KJV
+61,2 Pedro,KJV
+62,1 Juan,KJV
+63,2 Juan,KJV
+64,3 Juan,KJV
+65,Judas,KJV
+66,Apocalipsis,KJV

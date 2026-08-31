@@ -1,0 +1,67 @@
+book_id,name,version
+1,Génesis,NTV
+2,Éxodo,NTV
+3,Levítico,NTV
+4,Números,NTV
+5,Deuteronomio,NTV
+6,Josué,NTV
+7,Jueces,NTV
+8,Rut,NTV
+9,1 Samuel,NTV
+10,2 Samuel,NTV
+11,1 Reyes,NTV
+12,2 Reyes,NTV
+13,1 Crónicas,NTV
+14,2 Crónicas,NTV
+15,Esdras,NTV
+16,Nehemías,NTV
+17,Ester,NTV
+18,Job,NTV
+19,Salmos,NTV
+20,Proverbios,NTV
+21,Eclesiastés,NTV
+22,Cantares,NTV
+23,Isaías,NTV
+24,Jeremías,NTV
+25,Lamentaciones,NTV
+26,Ezequiel,NTV
+27,Daniel,NTV
+28,Oseas,NTV
+29,Joel,NTV
+30,Amós,NTV
+31,Abdías,NTV
+32,Jonás,NTV
+33,Miqueas,NTV
+34,Nahúm,NTV
+35,Habacuc,NTV
+36,Sofonías,NTV
+37,Hageo,NTV
+38,Zacarías,NTV
+39,Malaquías,NTV
+40,Mateo,NTV
+41,Marcos,NTV
+42,Lucas,NTV
+43,Juan,NTV
+44,Hechos,NTV
+45,Romanos,NTV
+46,1 Corintios,NTV
+47,2 Corintios,NTV
+48,Gálatas,NTV
+49,Efesios,NTV
+50,Filipenses,NTV
+51,Colosenses,NTV
+52,1 Tesalonicenses,NTV
+53,2 Tesalonicenses,NTV
+54,1 Timoteo,NTV
+55,2 Timoteo,NTV
+56,Tito,NTV
+57,Filemón,NTV
+58,Hebreos,NTV
+59,Santiago,NTV
+60,1 Pedro,NTV
+61,2 Pedro,NTV
+62,1 Juan,NTV
+63,2 Juan,NTV
+64,3 Juan,NTV
+65,Judas,NTV
+66,Apocalipsis,NTV

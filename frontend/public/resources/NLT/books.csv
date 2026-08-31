@@ -1,0 +1,67 @@
+book_id,name,version
+1,Génesis,NLT
+2,Éxodo,NLT
+3,Levítico,NLT
+4,Números,NLT
+5,Deuteronomio,NLT
+6,Josué,NLT
+7,Jueces,NLT
+8,Rut,NLT
+9,1 Samuel,NLT
+10,2 Samuel,NLT
+11,1 Reyes,NLT
+12,2 Reyes,NLT
+13,1 Crónicas,NLT
+14,2 Crónicas,NLT
+15,Esdras,NLT
+16,Nehemías,NLT
+17,Ester,NLT
+18,Job,NLT
+19,Salmos,NLT
+20,Proverbios,NLT
+21,Eclesiastés,NLT
+22,Cantares,NLT
+23,Isaías,NLT
+24,Jeremías,NLT
+25,Lamentaciones,NLT
+26,Ezequiel,NLT
+27,Daniel,NLT
+28,Oseas,NLT
+29,Joel,NLT
+30,Amós,NLT
+31,Abdías,NLT
+32,Jonás,NLT
+33,Miqueas,NLT
+34,Nahúm,NLT
+35,Habacuc,NLT
+36,Sofonías,NLT
+37,Hageo,NLT
+38,Zacarías,NLT
+39,Malaquías,NLT
+40,Mateo,NLT
+41,Marcos,NLT
+42,Lucas,NLT
+43,Juan,NLT
+44,Hechos,NLT
+45,Romanos,NLT
+46,1 Corintios,NLT
+47,2 Corintios,NLT
+48,Gálatas,NLT
+49,Efesios,NLT
+50,Filipenses,NLT
+51,Colosenses,NLT
+52,1 Tesalonicenses,NLT
+53,2 Tesalonicenses,NLT
+54,1 Timoteo,NLT
+55,2 Timoteo,NLT
+56,Tito,NLT
+57,Filemón,NLT
+58,Hebreos,NLT
+59,Santiago,NLT
+60,1 Pedro,NLT
+61,2 Pedro,NLT
+62,1 Juan,NLT
+63,2 Juan,NLT
+64,3 Juan,NLT
+65,Judas,NLT
+66,Apocalipsis,NLT
