@@ -55,11 +55,6 @@ tasks:
   deploy-api:
     desc: Compile the Spring Boot API and deploy the BibleAPI Docker container
     dir: '{{.API_DIR}}'
-    preconditions:
-      - sh: test -x ./mvnw
-        msg: Maven wrapper not found under BibleAPI/
-      - sh: command -v docker >/dev/null
-        msg: docker is not available
     cmds:
       - ./mvnw -DskipTests package
       - docker compose -p bibleproject up -d --build --force-recreate
@@ -127,9 +122,6 @@ tasks:
     dir: '{{.FRONTEND_DIR}}'
     env:
       PATH: '{{.NODE_BIN}}:{{.PATH}}'
-    preconditions:
-      - sh: test -d ios
-        msg: iOS project is missing under frontend/ios
     cmds:
       - node '{{.ROOT_DIR}}/scripts/cap.cjs' sync ios
 
@@ -138,9 +130,6 @@ tasks:
     dir: '{{.FRONTEND_DIR}}'
     env:
       PATH: '{{.NODE_BIN}}:{{.PATH}}'
-    preconditions:
-      - sh: test -d android
-        msg: Android project is missing under frontend/android
     cmds:
       - node '{{.ROOT_DIR}}/scripts/cap.cjs' sync android
 
@@ -166,11 +155,6 @@ tasks:
   ios:package:
     internal: true
     desc: Build the iOS debug IPA and copy it to builds/app-debug-ipa
-    preconditions:
-      - sh: test -d '{{.IOS_WORKSPACE}}'
-        msg: iOS Xcode workspace not found
-      - sh: command -v xcodebuild >/dev/null
-        msg: xcodebuild is not available. Install Xcode and its command-line tools
     cmds:
       - |
         set -euo pipefail
@@ -199,11 +183,6 @@ tasks:
   ios:package-device:
     internal: true
     desc: Build an unsigned iphoneos IPA for Sideloadly/AltStore
-    preconditions:
-      - sh: test -d '{{.IOS_WORKSPACE}}'
-        msg: iOS Xcode workspace not found
-      - sh: command -v xcodebuild >/dev/null
-        msg: xcodebuild is not available. Install Xcode and its command-line tools
     cmds:
       - |
         set -euo pipefail
@@ -239,11 +218,6 @@ tasks:
     env:
       ANDROID_HOME: '{{.ANDROID_SDK}}'
       ANDROID_SDK_ROOT: '{{.ANDROID_SDK}}'
-    preconditions:
-      - sh: test -x '{{.ANDROID_DIR}}/gradlew'
-        msg: Android Gradle wrapper not found under frontend/android
-      - sh: test -d '{{.ANDROID_SDK}}'
-        msg: Android SDK not found. Set ANDROID_HOME or install Android Studio
     cmds:
       - |
         set -euo pipefail
@@ -258,11 +232,6 @@ tasks:
   ios:run:
     internal: true
     desc: Build the iOS app and install it on a Simulator
-    preconditions:
-      - sh: test -d '{{.IOS_WORKSPACE}}'
-        msg: iOS Xcode workspace not found
-      - sh: command -v xcodebuild >/dev/null
-        msg: xcodebuild is not available. Install Xcode and its command-line tools
     cmds:
       - |
         set -euo pipefail
@@ -292,11 +261,6 @@ tasks:
     env:
       ANDROID_HOME: '{{.ANDROID_SDK}}'
       ANDROID_SDK_ROOT: '{{.ANDROID_SDK}}'
-    preconditions:
-      - sh: test -x '{{.ANDROID_DIR}}/gradlew'
-        msg: Android Gradle wrapper not found under frontend/android
-      - sh: test -d '{{.ANDROID_SDK}}'
-        msg: Android SDK not found. Set ANDROID_HOME or install Android Studio
     cmds:
       - |
         set -euo pipefail
