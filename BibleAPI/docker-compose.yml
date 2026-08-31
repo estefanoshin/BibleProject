@@ -1,0 +1,15 @@
+name: bibleproject
+
+services:
+  bibleapi:
+    build: .
+    image: bibleapi:latest
+    container_name: BibleAPI
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    env_file:
+      - ../.env
+    environment:
+      MSSQL_HOST: host.docker.internal
+    ports:
+      - "5010:5010"

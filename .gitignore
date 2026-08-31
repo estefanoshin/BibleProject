@@ -1,0 +1,9 @@
+.idea/
+*.iml
+.DS_Store
+.env
+
+/builds/app-debug-apk/*
+!/builds/app-debug-apk/.gitkeep
+/builds/app-debug-ipa/*
+!/builds/app-debug-ipa/.gitkeep

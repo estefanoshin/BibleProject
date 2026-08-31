@@ -1,0 +1,30 @@
+spring:
+  config:
+    import: optional:file:../.env[.properties]
+  application:
+    name: BibleAPI
+  datasource:
+    url: jdbc:sqlserver://${MSSQL_HOST:localhost}:${MSSQL_PORT:1435};databaseName=${MSSQL_DATABASE:master};encrypt=true;trustServerCertificate=true
+    username: ${MSSQL_USER:sa}
+    password: ${MSSQL_SA_PASSWORD:}
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+
+server:
+  port: 5010
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+  api-docs:
+    path: /v3/api-docs

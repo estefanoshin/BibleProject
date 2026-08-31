@@ -1,0 +1,7 @@
+{
+  "name": "bible_project",
+  "private": true,
+  "scripts": {
+    "start": "pnpm --dir frontend start"
+  }
+}

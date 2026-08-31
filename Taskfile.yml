@@ -1,0 +1,256 @@
+version: "3"
+
+vars:
+  FRONTEND_DIR: frontend
+  API_DIR: BibleAPI
+  APP_ID: com.eshin.bible
+  IOS_SCHEME: App
+  IOS_WORKSPACE: '{{.FRONTEND_DIR}}/ios/App/App.xcworkspace'
+  IOS_DERIVED_DATA: '{{.FRONTEND_DIR}}/ios/build'
+  ANDROID_DIR: '{{.FRONTEND_DIR}}/android'
+  ANDROID_SDK: '{{.ANDROID_HOME | default (printf "%s/Library/Android/sdk" .HOME)}}'
+  BUILDS_DIR: '{{.ROOT_DIR}}/builds'
+  ANDROID_BUILD_OUT: '{{.BUILDS_DIR}}/app-debug-apk'
+  IOS_BUILD_OUT: '{{.BUILDS_DIR}}/app-debug-ipa'
+  NODE_VERSION: 20.19.2
+  NODE_BIN: '{{.HOME}}/.nvm/versions/node/v{{.NODE_VERSION}}/bin'
+
+tasks:
+  default:
+    desc: List available tasks
+    cmds:
+      - task --list
+
+  start:
+    desc: Start the frontend Vite dev server
+    dir: '{{.FRONTEND_DIR}}'
+    env:
+      PATH: '{{.NODE_BIN}}:{{.PATH}}'
+    preconditions:
+      - sh: test -x '{{.NODE_BIN}}/node'
+        msg: 'Node v{{.NODE_VERSION}} not found. Run `nvm install {{.NODE_VERSION}}`'
+    cmds:
+      - pnpm start
+
+  frontend:build:
+    desc: Compile the React web app
+    dir: '{{.FRONTEND_DIR}}'
+    env:
+      PATH: '{{.NODE_BIN}}:{{.PATH}}'
+    preconditions:
+      - sh: test -x '{{.NODE_BIN}}/node'
+        msg: 'Node v{{.NODE_VERSION}} not found. Run `nvm install {{.NODE_VERSION}}`'
+    cmds:
+      - npm run build
+
+  deploy:
+    desc: Build the web app. Use `task deploy ios` or `task deploy android`
+    cmds:
+      - task: frontend:build
+
+  deploy-api:
+    desc: Compile the Spring Boot API and deploy the BibleAPI Docker container
+    dir: '{{.API_DIR}}'
+    preconditions:
+      - sh: test -x ./mvnw
+        msg: Maven wrapper not found under BibleAPI/
+      - sh: command -v docker >/dev/null
+        msg: docker is not available
+    cmds:
+      - ./mvnw -DskipTests package
+      - docker compose -p bibleproject up -d --build --force-recreate
+
+  ios:
+    aliases: [deploy:ios]
+    desc: Compile and deploy the iOS app to the Simulator
+    deps: [deploy]
+    cmds:
+      - task: ios:sync
+      - task: ios:run
+
+  android:
+    aliases: [deploy:android]
+    desc: Compile and deploy the Android app to an emulator
+    deps: [deploy]
+    cmds:
+      - task: android:sync
+      - task: android:run
+
+  build:
+    desc: Package native apps. Use `task build ios` or `task build android`
+    cmds:
+      - task: frontend:build
+
+  build:android:
+    desc: Compile the Android debug APK into builds/app-debug-apk
+    deps: [build]
+    cmds:
+      - task: android:sync
+      - task: android:package
+
+  build:ios:
+    desc: Compile the iOS debug app into builds/app-debug-ipa
+    deps: [build]
+    cmds:
+      - task: ios:sync
+      - task: ios:package
+
+  ios:sync:
+    internal: true
+    dir: '{{.FRONTEND_DIR}}'
+    env:
+      PATH: '{{.NODE_BIN}}:{{.PATH}}'
+    preconditions:
+      - sh: test -x '{{.NODE_BIN}}/node'
+        msg: 'Node v{{.NODE_VERSION}} not found. Run `nvm install {{.NODE_VERSION}}`'
+      - sh: test -d ios
+        msg: iOS project is missing under frontend/ios
+    cmds:
+      - node '{{.ROOT_DIR}}/scripts/cap.cjs' sync ios
+
+  android:sync:
+    internal: true
+    dir: '{{.FRONTEND_DIR}}'
+    env:
+      PATH: '{{.NODE_BIN}}:{{.PATH}}'
+    preconditions:
+      - sh: test -x '{{.NODE_BIN}}/node'
+        msg: 'Node v{{.NODE_VERSION}} not found. Run `nvm install {{.NODE_VERSION}}`'
+      - sh: test -d android
+        msg: Android project is missing under frontend/android
+    cmds:
+      - node '{{.ROOT_DIR}}/scripts/cap.cjs' sync android
+
+  ios:package:
+    internal: true
+    desc: Build the iOS debug app and copy it to builds/app-debug-ipa
+    preconditions:
+      - sh: test -d '{{.IOS_WORKSPACE}}'
+        msg: iOS Xcode workspace not found
+      - sh: command -v xcodebuild >/dev/null
+        msg: xcodebuild is not available. Install Xcode and its command-line tools
+    cmds:
+      - |
+        set -euo pipefail
+        xcodebuild \
+          -workspace "{{.IOS_WORKSPACE}}" \
+          -scheme "{{.IOS_SCHEME}}" \
+          -configuration Debug \
+          -sdk iphonesimulator \
+          -destination "generic/platform=iOS Simulator" \
+          -derivedDataPath "{{.IOS_DERIVED_DATA}}" \
+          CODE_SIGNING_ALLOWED=NO \
+          build
+
+        APP="{{.IOS_DERIVED_DATA}}/Build/Products/Debug-iphonesimulator/App.app"
+        OUT="{{.IOS_BUILD_OUT}}"
+        mkdir -p "$OUT"
+        rm -rf "$OUT/App.app"
+        cp -R "$APP" "$OUT/"
+        echo "iOS app copied to $OUT/App.app"
+
+  android:package:
+    internal: true
+    desc: Build the Android debug APK and copy it to builds/app-debug-apk
+    env:
+      ANDROID_HOME: '{{.ANDROID_SDK}}'
+      ANDROID_SDK_ROOT: '{{.ANDROID_SDK}}'
+    preconditions:
+      - sh: test -x '{{.ANDROID_DIR}}/gradlew'
+        msg: Android Gradle wrapper not found under frontend/android
+      - sh: test -d '{{.ANDROID_SDK}}'
+        msg: Android SDK not found. Set ANDROID_HOME or install Android Studio
+    cmds:
+      - |
+        set -euo pipefail
+        (
+          cd "{{.ANDROID_DIR}}"
+          ./gradlew assembleDebug
+        )
+        APK="{{.ANDROID_DIR}}/app/build/outputs/apk/debug/app-debug.apk"
+        OUT="{{.ANDROID_BUILD_OUT}}"
+        mkdir -p "$OUT"
+        rm -f "$OUT/app-debug.apk"
+        cp "$APK" "$OUT/app-debug.apk"
+        echo "Android APK copied to $OUT/app-debug.apk"
+
+  ios:run:
+    internal: true
+    desc: Build the iOS app and install it on a Simulator
+    preconditions:
+      - sh: test -d '{{.IOS_WORKSPACE}}'
+        msg: iOS Xcode workspace not found
+      - sh: command -v xcodebuild >/dev/null
+        msg: xcodebuild is not available. Install Xcode and its command-line tools
+    cmds:
+      - |
+        set -euo pipefail
+        UDID="$(python3 "{{.ROOT_DIR}}/scripts/pick_ios_simulator.py" ${IOS_SIMULATOR:+"$IOS_SIMULATOR"})"
+
+        xcrun simctl boot "$UDID" >/dev/null 2>&1 || true
+        open -a Simulator --args -CurrentDeviceUDID "$UDID"
+        xcrun simctl bootstatus "$UDID" -b >/dev/null
+
+        xcodebuild \
+          -workspace "{{.IOS_WORKSPACE}}" \
+          -scheme "{{.IOS_SCHEME}}" \
+          -configuration Debug \
+          -sdk iphonesimulator \
+          -destination "id=$UDID" \
+          -derivedDataPath "{{.IOS_DERIVED_DATA}}" \
+          CODE_SIGNING_ALLOWED=NO \
+          build
+
+        APP="{{.IOS_DERIVED_DATA}}/Build/Products/Debug-iphonesimulator/App.app"
+        xcrun simctl install "$UDID" "$APP"
+        xcrun simctl launch "$UDID" "{{.APP_ID}}"
+
+  android:run:
+    internal: true
+    desc: Build the Android app and install it on an emulator
+    env:
+      ANDROID_HOME: '{{.ANDROID_SDK}}'
+      ANDROID_SDK_ROOT: '{{.ANDROID_SDK}}'
+    preconditions:
+      - sh: test -x '{{.ANDROID_DIR}}/gradlew'
+        msg: Android Gradle wrapper not found under frontend/android
+      - sh: test -d '{{.ANDROID_SDK}}'
+        msg: Android SDK not found. Set ANDROID_HOME or install Android Studio
+    cmds:
+      - |
+        set -euo pipefail
+        export PATH="{{.ANDROID_SDK}}/emulator:{{.ANDROID_SDK}}/platform-tools:{{.ANDROID_SDK}}/cmdline-tools/latest/bin:${PATH}"
+
+        if ! command -v adb >/dev/null; then
+          echo "adb not found on PATH or under {{.ANDROID_SDK}}/platform-tools"
+          exit 1
+        fi
+
+        SERIAL="$(adb devices | awk '/emulator-.*device$/{print $1; exit}')"
+        if [ -z "$SERIAL" ]; then
+          EMU="{{.ANDROID_SDK}}/emulator/emulator"
+          if [ ! -x "$EMU" ]; then
+            echo "Android emulator binary not found at $EMU"
+            exit 1
+          fi
+
+          AVD="${ANDROID_AVD:-$("$EMU" -list-avds | awk 'NF{print; exit}')}"
+          if [ -z "$AVD" ]; then
+            echo "No Android Virtual Device found. Create one in Android Studio (Device Manager)."
+            exit 1
+          fi
+
+          echo "Starting Android emulator: $AVD"
+          "$EMU" -avd "$AVD" -netdelay none -netspeed full >/dev/null 2>&1 &
+          adb wait-for-device
+          until [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; do
+            sleep 2
+          done
+          SERIAL="$(adb devices | awk '/emulator-.*device$/{print $1; exit}')"
+        fi
+
+        (
+          cd "{{.ANDROID_DIR}}"
+          ./gradlew installDebug
+        )
+        adb -s "$SERIAL" shell am start -n "{{.APP_ID}}/.MainActivity"

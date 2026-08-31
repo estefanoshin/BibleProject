@@ -1,0 +1,15 @@
+target
+!target/BibleAPI-0.0.1-SNAPSHOT.jar
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+.vscode/
+.DS_Store
+.git
+.gitignore
+.dockerignore
+docker-compose.yml
+*.md
+src/test
