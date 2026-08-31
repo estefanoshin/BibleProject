@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { fetchChapters } from '../api'
 import { PageHeader, StatusMessage } from '../components/PageHeader.jsx'
 import { isChapterRead } from '../readProgress'
+import { navigate } from '../router'
+import { useHorizontalSwipe } from '../useSwipe'
 
 export default function ChaptersPage({ bookId }) {
   const [chapters, setChapters] = useState([])
@@ -36,6 +38,8 @@ export default function ChaptersPage({ bookId }) {
   const bookName = chapters[0]?.bookName || 'Capítulos'
   const version = chapters[0]?.version
   const booksHref = version ? `#/versions/${encodeURIComponent(version)}/books` : '#/'
+
+  useHorizontalSwipe({ onSwipeRight: () => navigate(booksHref) })
 
   return (
     <section className="page">

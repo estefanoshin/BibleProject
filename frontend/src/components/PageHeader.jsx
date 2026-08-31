@@ -1,16 +1,35 @@
-export function PageHeader({ title, subtitle, backTo, backLabel = 'Atrás' }) {
+function BackIcon() {
+  return (
+    <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+      <path
+        d="M12.3 4.3 6.6 10l5.7 5.7"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+export function PageHeader({ title, subtitle, backTo, backLabel = 'Atrás', actions }) {
   return (
     <header className="page-header">
       {backTo ? (
-        <a className="back-link" href={backTo}>
-          {backLabel}
+        <a className="back-button" href={backTo}>
+          <BackIcon />
+          <span>{backLabel}</span>
         </a>
       ) : (
-        <span className="back-link placeholder" />
+        <span className="back-button placeholder" />
       )}
-      <div>
-        <h1>{title}</h1>
-        {subtitle ? <p className="subtitle">{subtitle}</p> : null}
+      <div className="page-header-row">
+        <div>
+          <h1>{title}</h1>
+          {subtitle ? <p className="subtitle">{subtitle}</p> : null}
+        </div>
+        {actions ? <div className="page-header-actions">{actions}</div> : null}
       </div>
     </header>
   )

@@ -1,10 +1,16 @@
 import { useEffect, useState } from 'react'
 import { fetchChapterVerses } from '../api'
+import { resolveChapterNeighbors } from '../chapterNavigation'
 import { PageHeader, StatusMessage } from '../components/PageHeader.jsx'
 import { isChapterRead, setChapterRead } from '../readProgress'
+import { navigate } from '../router'
+import { useHorizontalSwipe } from '../useSwipe'
+
+const NO_NEIGHBORS = { previous: null, next: null }
 
 export default function ReaderPage({ chapterId }) {
   const [chapter, setChapter] = useState(null)
+  const [neighbors, setNeighbors] = useState(NO_NEIGHBORS)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [read, setRead] = useState(() => isChapterRead(chapterId))
@@ -13,11 +19,17 @@ export default function ReaderPage({ chapterId }) {
     let cancelled = false
     setLoading(true)
     setError('')
+    setNeighbors(NO_NEIGHBORS)
     fetchChapterVerses(chapterId)
-      .then((data) => {
+      .then(async (data) => {
+        if (cancelled) {
+          return
+        }
+        setChapter(data)
+        window.scrollTo(0, 0)
+        const resolved = await resolveChapterNeighbors(data)
         if (!cancelled) {
-          setChapter(data)
-          window.scrollTo(0, 0)
+          setNeighbors(resolved)
         }
       })
       .catch((err) => {
@@ -38,6 +50,17 @@ export default function ReaderPage({ chapterId }) {
   useEffect(() => {
     setRead(isChapterRead(chapterId))
   }, [chapterId])
+
+  useHorizontalSwipe({
+    onSwipeLeft: () => goTo(neighbors.next),
+    onSwipeRight: () => goTo(neighbors.previous),
+  })
+
+  function goTo(target) {
+    if (target) {
+      navigate(`/chapters/${target.chapterId}`)
+    }
+  }
 
   function toggleRead() {
     setRead(setChapterRead(chapterId, !read))
@@ -73,19 +96,25 @@ export default function ReaderPage({ chapterId }) {
             {read ? 'Marcado como leído' : 'Marcar como leído'}
           </button>
           <nav className="chapter-nav">
-            {chapter.previousChapterId ? (
-              <a href={`#/chapters/${chapter.previousChapterId}`}>Capítulo anterior</a>
-            ) : (
-              <span />
-            )}
-            {chapter.nextChapterId ? (
-              <a href={`#/chapters/${chapter.nextChapterId}`}>Capítulo siguiente</a>
-            ) : (
-              <span />
-            )}
+            <NeighborLink target={neighbors.previous} direction={-1} />
+            <NeighborLink target={neighbors.next} direction={1} />
           </nav>
         </>
       ) : null}
     </section>
+  )
+}
+
+function NeighborLink({ target, direction }) {
+  if (!target) {
+    return <span />
+  }
+  const label = target.otherBook
+    ? `${target.bookName} ${target.chapterNumber}`
+    : `Capítulo ${target.chapterNumber}`
+  return (
+    <a href={`#/chapters/${target.chapterId}`}>
+      {direction < 0 ? `‹ ${label}` : `${label} ›`}
+    </a>
   )
 }

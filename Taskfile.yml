@@ -70,7 +70,7 @@ tasks:
         vars:
           API_URL: '{{.IOS_API_URL}}'
       - task: ios:sync
-      - task: ios:package-if-requested
+      - task: ios:package
       - task: ios:run-if-requested
       - task: native:clear-action
 
@@ -82,7 +82,7 @@ tasks:
         vars:
           API_URL: '{{.ANDROID_API_URL}}'
       - task: android:sync
-      - task: android:package-if-requested
+      - task: android:package
       - task: android:run-if-requested
       - task: native:clear-action
 
@@ -138,26 +138,12 @@ tasks:
     cmds:
       - rm -f '{{.NATIVE_ACTION_FILE}}'
 
-  ios:package-if-requested:
-    internal: true
-    status:
-      - test ! -f '{{.NATIVE_ACTION_FILE}}' || [ "$(cat '{{.NATIVE_ACTION_FILE}}')" != package ]
-    cmds:
-      - task: ios:package
-
   ios:run-if-requested:
     internal: true
     status:
       - test -f '{{.NATIVE_ACTION_FILE}}' && [ "$(cat '{{.NATIVE_ACTION_FILE}}')" = package ]
     cmds:
       - task: ios:run
-
-  android:package-if-requested:
-    internal: true
-    status:
-      - test ! -f '{{.NATIVE_ACTION_FILE}}' || [ "$(cat '{{.NATIVE_ACTION_FILE}}')" != package ]
-    cmds:
-      - task: android:package
 
   android:run-if-requested:
     internal: true
