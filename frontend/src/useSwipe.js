@@ -4,11 +4,14 @@ const MIN_DISTANCE = 60
 const HORIZONTAL_RATIO = 1.5
 const MAX_DURATION = 800
 
-export function useHorizontalSwipe({ onSwipeLeft, onSwipeRight } = {}) {
+export function useHorizontalSwipe({ onSwipeLeft, onSwipeRight, enabled = true } = {}) {
   const handlers = useRef({ onSwipeLeft, onSwipeRight })
   handlers.current = { onSwipeLeft, onSwipeRight }
 
   useEffect(() => {
+    if (!enabled) {
+      return undefined
+    }
     let start = null
 
     const onStart = (event) => {
@@ -47,5 +50,5 @@ export function useHorizontalSwipe({ onSwipeLeft, onSwipeRight } = {}) {
       window.removeEventListener('touchend', onEnd)
       window.removeEventListener('touchcancel', onEnd)
     }
-  }, [])
+  }, [enabled])
 }

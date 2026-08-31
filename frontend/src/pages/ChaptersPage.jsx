@@ -3,21 +3,54 @@ import { fetchChapters } from '../api'
 import { bookNameForId, localizedBookName } from '../bookCatalog'
 import { canonicalBookIdFor } from '../chapterIdentity'
 import { PageHeader, StatusMessage } from '../components/PageHeader.jsx'
-import { chapterKey, rememberBookChapters, useReadProgress } from '../readProgress'
+import {
+  chapterKey,
+  rememberBookChapters,
+  setChaptersRead,
+  useReadProgress,
+} from '../readProgress'
 import { navigate } from '../router'
 import { useUiLanguage } from '../uiLanguage'
-import { chapterLabel, readAriaLabel, t } from '../uiStrings'
+import { chapterLabel, markSelectedLabel, readAriaLabel, t } from '../uiStrings'
 import { useHorizontalSwipe } from '../useSwipe'
 import { displayVersionName } from '../versionMeta'
+
+function SelectIcon() {
+  return (
+    <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+      <rect x="2.5" y="2.5" width="8" height="8" rx="1.6" strokeWidth="1.6" />
+      <path
+        d="M4.4 6.4 6 8l3.2-3.4"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <rect x="9.5" y="9.5" width="8" height="8" rx="1.6" strokeWidth="1.6" />
+      <path
+        d="M11.4 13.4 13 15l3.2-3.4"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
 
 export default function ChaptersPage({ bookId }) {
   const [chapters, setChapters] = useState([])
   const [canonicalId, setCanonicalId] = useState(null)
   const [loading, setLoading] = useState(true)
   const [failure, setFailure] = useState(null)
+  const [selecting, setSelecting] = useState(false)
+  const [selected, setSelected] = useState(() => new Set())
   const { readKeys } = useReadProgress()
   const version = chapters[0]?.version
   const lang = useUiLanguage(version)
+
+  useEffect(() => {
+    setSelecting(false)
+    setSelected(new Set())
+  }, [bookId])
 
   useEffect(() => {
     let cancelled = false
@@ -57,7 +90,45 @@ export default function ChaptersPage({ bookId }) {
   const booksHref = version ? `#/versions/${encodeURIComponent(version)}/books` : '#/'
   const error = failure == null ? '' : failure || t(lang, 'chaptersError')
 
-  useHorizontalSwipe({ onSwipeRight: () => navigate(booksHref) })
+  useHorizontalSwipe({
+    enabled: !selecting,
+    onSwipeRight: () => navigate(booksHref),
+  })
+
+  function toggleSelecting() {
+    setSelecting((on) => !on)
+    setSelected(new Set())
+  }
+
+  function toggleChapter(key) {
+    if (!key) {
+      return
+    }
+    setSelected((current) => {
+      const next = new Set(current)
+      if (next.has(key)) {
+        next.delete(key)
+      } else {
+        next.add(key)
+      }
+      return next
+    })
+  }
+
+  function selectAll() {
+    setSelected(
+      new Set(chapters.map((chapter) => chapterKey(canonicalId, chapter.chapterNumber)).filter(Boolean)),
+    )
+  }
+
+  function markSelectedRead() {
+    if (selected.size === 0) {
+      return
+    }
+    setChaptersRead([...selected], true)
+    setSelected(new Set())
+    setSelecting(false)
+  }
 
   return (
     <section className="page">
@@ -69,6 +140,19 @@ export default function ChaptersPage({ bookId }) {
         backTo={booksHref}
         backLabel={t(lang, 'books')}
         lang={lang}
+        barActions={
+          <button
+            type="button"
+            className="select-toggle"
+            onClick={toggleSelecting}
+            disabled={!canonicalId || chapters.length === 0}
+            title={t(lang, 'selectChapters')}
+            aria-label={t(lang, 'selectChapters')}
+            aria-pressed={selecting}
+          >
+            <SelectIcon />
+          </button>
+        }
       />
       <StatusMessage
         loading={loading}
@@ -78,20 +162,58 @@ export default function ChaptersPage({ bookId }) {
       />
       <ul className="chapter-grid">
         {chapters.map((chapter) => {
-          const read = readKeys.has(chapterKey(canonicalId, chapter.chapterNumber))
+          const key = chapterKey(canonicalId, chapter.chapterNumber)
+          const read = readKeys.has(key)
+          const isSelected = selected.has(key)
+          const className = [
+            'chapter-tile',
+            read ? 'read' : '',
+            isSelected ? 'selected' : '',
+          ]
+            .filter(Boolean)
+            .join(' ')
+          const label = readAriaLabel(lang, chapterLabel(lang, chapter.chapterNumber), read)
+          const selectLabel = isSelected ? `${label}, ${t(lang, 'selectedSuffix')}` : label
           return (
             <li key={chapter.chapterId}>
-              <a
-                className={read ? 'chapter-tile read' : 'chapter-tile'}
-                href={`#/chapters/${chapter.chapterId}`}
-                aria-label={readAriaLabel(lang, chapterLabel(lang, chapter.chapterNumber), read)}
-              >
-                {chapter.chapterNumber}
-              </a>
+              {selecting ? (
+                <button
+                  type="button"
+                  className={className}
+                  aria-pressed={isSelected}
+                  aria-label={selectLabel}
+                  onClick={() => toggleChapter(key)}
+                >
+                  {chapter.chapterNumber}
+                </button>
+              ) : (
+                <a
+                  className={className}
+                  href={`#/chapters/${chapter.chapterId}`}
+                  aria-label={label}
+                >
+                  {chapter.chapterNumber}
+                </a>
+              )}
             </li>
           )
         })}
       </ul>
+      {selecting ? (
+        <div className="chapter-select-bar">
+          <button type="button" className="chapter-select-all" onClick={selectAll}>
+            {t(lang, 'selectAll')}
+          </button>
+          <button
+            type="button"
+            className="mark-read-button"
+            disabled={selected.size === 0}
+            onClick={markSelectedRead}
+          >
+            {markSelectedLabel(lang, selected.size)}
+          </button>
+        </div>
+      ) : null}
     </section>
   )
 }

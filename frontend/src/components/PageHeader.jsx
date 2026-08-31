@@ -18,7 +18,7 @@ function BackIcon() {
 
 // The sticky bar is a sibling of the header so it can stick for the whole page,
 // not just for the height of the header block.
-export function PageHeader({ title, subtitle, backTo, backLabel, actions, lang = SPANISH }) {
+export function PageHeader({ title, subtitle, backTo, backLabel, actions, barActions, lang = SPANISH }) {
   return (
     <>
       <div className="back-bar">
@@ -30,6 +30,7 @@ export function PageHeader({ title, subtitle, backTo, backLabel, actions, lang =
         ) : (
           <span className="back-button placeholder" />
         )}
+        {barActions ? <div className="back-bar-actions">{barActions}</div> : null}
       </div>
       <header className="page-header">
         <div className="page-header-row">

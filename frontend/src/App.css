@@ -22,7 +22,8 @@
 }
 
 .view-toggle,
-.lang-toggle {
+.lang-toggle,
+.select-toggle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -44,14 +45,21 @@
 }
 
 .view-toggle:hover,
-.lang-toggle:hover {
+.lang-toggle:hover,
+.select-toggle:hover {
   background: var(--accent-bg);
 }
 
-.view-toggle svg {
+.view-toggle svg,
+.select-toggle svg {
   width: 20px;
   height: 20px;
   fill: currentColor;
+}
+
+.select-toggle svg {
+  fill: none;
+  stroke: currentColor;
 }
 
 .section-heading {
@@ -83,16 +91,28 @@
   position: sticky;
   top: 0;
   z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin: -20px -20px 2em;
   padding: 20px 20px 10px;
   background: var(--panel);
+}
+
+.back-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .back-button {
   display: flex;
   align-items: center;
   gap: 6px;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
+  width: auto;
   box-sizing: border-box;
   padding: 10px 14px 10px 10px;
   border: 1px solid var(--border);
@@ -194,10 +214,64 @@
   font-weight: 600;
 }
 
+button.chapter-tile {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  appearance: none;
+  cursor: pointer;
+}
+
 .book-tile {
   padding: 0 6px;
   text-align: center;
   white-space: nowrap;
+}
+
+.select-toggle[aria-pressed='true'] {
+  background: var(--accent-bg);
+  border-color: var(--accent);
+}
+
+.chapter-tile.selected {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.chapter-select-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  gap: 8px;
+  margin: 28px -20px -48px;
+  padding: 10px 20px calc(10px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border);
+  background: var(--panel);
+}
+
+.chapter-select-bar .mark-read-button {
+  flex: 1;
+  width: auto;
+  margin-top: 0;
+}
+
+.chapter-select-all {
+  flex: 0 0 auto;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.chapter-select-all:hover {
+  background: var(--accent-bg);
 }
 
 .chapter-tile.read,

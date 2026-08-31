@@ -15,6 +15,10 @@ const STRINGS = {
     otherLanguages: 'Otras',
     markRead: 'Marcar como leído',
     markedRead: 'Marcado como leído',
+    markSelectedRead: 'Marcar como leídos',
+    selectChapters: 'Seleccionar capítulos',
+    selectAll: 'Seleccionar todos',
+    selectedSuffix: 'seleccionado',
     readSuffix: 'leído',
     listView: 'Ver lista con nombres completos',
     gridView: 'Ver cuadrícula con abreviaturas',
@@ -38,6 +42,10 @@ const STRINGS = {
     otherLanguages: 'Other',
     markRead: 'Mark as read',
     markedRead: 'Marked as read',
+    markSelectedRead: 'Mark as read',
+    selectChapters: 'Select chapters',
+    selectAll: 'Select all',
+    selectedSuffix: 'selected',
     readSuffix: 'read',
     listView: 'Show list with full names',
     gridView: 'Show grid with abbreviations',
@@ -61,6 +69,10 @@ const STRINGS = {
     otherLanguages: '기타',
     markRead: '읽음으로 표시',
     markedRead: '읽음으로 표시됨',
+    markSelectedRead: '읽음으로 표시',
+    selectChapters: '장 선택',
+    selectAll: '모두 선택',
+    selectedSuffix: '선택됨',
     readSuffix: '읽음',
     listView: '전체 이름 목록으로 보기',
     gridView: '약어 격자로 보기',
@@ -110,6 +122,17 @@ export function readAriaLabel(lang, label, read) {
 
 export function readButtonLabel(lang, read) {
   return t(lang, read ? 'markedRead' : 'markRead')
+}
+
+export function markSelectedLabel(lang, count) {
+  const base = t(lang, 'markSelectedRead')
+  if (!count) {
+    return base
+  }
+  if (lang === KOREAN) {
+    return `${count}장 ${base}`
+  }
+  return `${base} (${count})`
 }
 
 export function languageToggleAria(lang) {

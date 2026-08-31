@@ -162,13 +162,28 @@ export function setChapterRead(key, read) {
   if (!key) {
     return false
   }
-  if (read) {
-    chapterKeys.add(key)
-  } else {
-    chapterKeys.delete(key)
-  }
-  persist()
+  setChaptersRead([key], read)
   return chapterKeys.has(key)
+}
+
+export function setChaptersRead(keys, read) {
+  let changed = false
+  for (const key of keys) {
+    if (!key) {
+      continue
+    }
+    if (read) {
+      if (!chapterKeys.has(key)) {
+        chapterKeys.add(key)
+        changed = true
+      }
+    } else if (chapterKeys.delete(key)) {
+      changed = true
+    }
+  }
+  if (changed) {
+    persist()
+  }
 }
 
 // A book can only be judged complete once its chapter list has been seen at least once,
