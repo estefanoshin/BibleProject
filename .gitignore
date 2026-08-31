@@ -8,3 +8,5 @@
 !/builds/app-debug-apk/.gitkeep
 /builds/app-debug-ipa/*
 !/builds/app-debug-ipa/.gitkeep
+
+frontend/pnpm-lock.yaml

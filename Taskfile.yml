@@ -29,9 +29,6 @@ tasks:
     dir: '{{.FRONTEND_DIR}}'
     env:
       PATH: '{{.NODE_BIN}}:{{.PATH}}'
-    preconditions:
-      - sh: test -x '{{.NODE_BIN}}/node'
-        msg: 'Node v{{.NODE_VERSION}} not found. Run `nvm install {{.NODE_VERSION}}`'
     cmds:
       - pnpm start
 
@@ -43,9 +40,6 @@ tasks:
       # Baked into the bundle at build time. Empty means "same origin", which is
       # what the browser build wants; the native builds override it.
       VITE_API_URL: '{{.API_URL}}'
-    preconditions:
-      - sh: test -x '{{.NODE_BIN}}/node'
-        msg: 'Node v{{.NODE_VERSION}} not found. Run `nvm install {{.NODE_VERSION}}`'
     cmds:
       - npm run build
 
@@ -123,8 +117,6 @@ tasks:
     env:
       PATH: '{{.NODE_BIN}}:{{.PATH}}'
     preconditions:
-      - sh: test -x '{{.NODE_BIN}}/node'
-        msg: 'Node v{{.NODE_VERSION}} not found. Run `nvm install {{.NODE_VERSION}}`'
       - sh: test -d ios
         msg: iOS project is missing under frontend/ios
     cmds:
@@ -136,8 +128,6 @@ tasks:
     env:
       PATH: '{{.NODE_BIN}}:{{.PATH}}'
     preconditions:
-      - sh: test -x '{{.NODE_BIN}}/node'
-        msg: 'Node v{{.NODE_VERSION}} not found. Run `nvm install {{.NODE_VERSION}}`'
       - sh: test -d android
         msg: Android project is missing under frontend/android
     cmds:
