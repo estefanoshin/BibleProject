@@ -13,7 +13,7 @@ You can browse versions, books, and chapters, read verses, and mark chapters as 
 | --- | --- |
 | `frontend/` | React + Vite UI (`Biblia`), Capacitor iOS/Android projects |
 | `BibleAPI/` | Spring Boot 4 API (Java 21), OpenAPI / Swagger UI |
-| `resources/` | CSV source data for each version |
+| `frontend/public/resources/` | CSV source data bundled with the web app |
 | `scripts/` | SQL Server container, CSV import, Capacitor helpers |
 | `Taskfile.yml` | Common local commands |
 

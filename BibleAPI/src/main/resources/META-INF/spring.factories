@@ -1,0 +1,2 @@
+org.springframework.boot.EnvironmentPostProcessor=\
+com.eshin.bible.api.config.OfflineEnvironmentPostProcessor

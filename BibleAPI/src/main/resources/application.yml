@@ -9,6 +9,10 @@ spring:
     password: ${MSSQL_SA_PASSWORD:}
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
 
+bible:
+  offline: ${OFFLINE:true}
+  resources-location: ${BIBLE_RESOURCES_LOCATION:classpath:bible-data}
+
 server:
   port: 5010
 

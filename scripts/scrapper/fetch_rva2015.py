@@ -16,7 +16,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-OUT_DIR = ROOT / "resources" / "RVA2015"
+OUT_DIR = ROOT / "frontend" / "public" / "resources" / "RVA2015"
 CACHE_DIR = Path("/tmp/bible_rva2015_cache")
 VERSION = "RVA-2015"
 _CACHE_LOCK = threading.Lock()

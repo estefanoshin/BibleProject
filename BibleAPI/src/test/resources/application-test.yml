@@ -4,3 +4,8 @@ spring:
     username: sa
     password:
     driver-class-name: org.h2.Driver
+
+bible:
+  offline: false
+
+OFFLINE: false

@@ -3,7 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
-CSV_DIR="${ROOT_DIR}/resources/RVA2015"
+CSV_DIR="${ROOT_DIR}/frontend/public/resources/RVA2015"
 IMPORT_DIR="/var/opt/mssql/import/RVA2015"
 VERSION="RVA-2015"
 

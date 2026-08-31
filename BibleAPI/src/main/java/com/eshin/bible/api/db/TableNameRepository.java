@@ -1,11 +1,13 @@
 package com.eshin.bible.api.db;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
 @Repository
+@ConditionalOnProperty(name = "bible.offline", havingValue = "false")
 public class TableNameRepository {
 
     private final JdbcTemplate jdbcTemplate;

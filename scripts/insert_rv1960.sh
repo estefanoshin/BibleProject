@@ -3,7 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
-CSV_DIR="${ROOT_DIR}/resources/RV1960"
+CSV_DIR="${ROOT_DIR}/frontend/public/resources/RV1960"
 IMPORT_DIR="/var/opt/mssql/import/RV1960"
 
 if [ -f "${ROOT_DIR}/.env" ]; then
