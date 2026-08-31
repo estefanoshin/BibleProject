@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { fetchVersions } from '../api'
 import { PageHeader, StatusMessage } from '../components/PageHeader.jsx'
+import { displayVersionName, groupVersions } from '../versionMeta'
 
 export default function VersionsPage() {
   const [versions, setVersions] = useState([])
@@ -30,22 +31,31 @@ export default function VersionsPage() {
     }
   }, [])
 
+  const groups = groupVersions(versions)
+
   return (
     <section className="page">
       <PageHeader title="Biblia" subtitle="Elige una versión para empezar a leer" />
       <StatusMessage loading={loading} error={error} empty={!loading && !error && versions.length === 0} />
-      <ul className="card-list">
-        {versions.map((item) => (
-          <li key={item.version}>
-            <a className="card" href={`#/versions/${encodeURIComponent(item.version)}/books`}>
-              <strong>{item.version}</strong>
-              <span>
-                {item.bookCount} {item.bookCount === 1 ? 'libro' : 'libros'}
-              </span>
-            </a>
-          </li>
-        ))}
-      </ul>
+      {groups.map((group) => (
+        <div key={group.id} className="version-group">
+          <h2 className="section-heading">
+            <span>{group.label}</span>
+          </h2>
+          <ul className="card-list">
+            {group.items.map((item) => (
+              <li key={item.version}>
+                <a className="card" href={`#/versions/${encodeURIComponent(item.version)}/books`}>
+                  <strong>{displayVersionName(item.version)}</strong>
+                  <span>
+                    {item.bookCount} {item.bookCount === 1 ? 'libro' : 'libros'}
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
     </section>
   )
 }

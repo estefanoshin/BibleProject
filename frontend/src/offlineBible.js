@@ -94,6 +94,7 @@ export async function loadOfflineBible() {
       const originalId = Number(row.book_id)
       const book = {
         bookId: originalId + bookOff,
+        sourceBookId: originalId,
         name: row.name,
         version: row.version,
       }

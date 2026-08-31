@@ -1,10 +1,22 @@
 import { useEffect, useState } from 'react'
 import { fetchBooks } from '../api'
-import { bookAbbreviation } from '../bookAbbreviations'
+import {
+  localizedBookAbbr,
+  localizedBookName,
+  splitByTestament,
+  testamentLabel,
+} from '../bookCatalog'
 import { PageHeader, StatusMessage } from '../components/PageHeader.jsx'
+import { readBookIds } from '../readProgress'
 import { navigate } from '../router'
 import { useHorizontalSwipe } from '../useSwipe'
 import { GRID_VIEW, LIST_VIEW, readBooksView, writeBooksView } from '../viewPreference'
+import {
+  displayVersionName,
+  languageLabel,
+  nextBookLanguage,
+  versionLanguage,
+} from '../versionMeta'
 
 function GridIcon() {
   return (
@@ -27,11 +39,50 @@ function ListIcon() {
   )
 }
 
+function BookList({ items, isGrid, lang, readBooks }) {
+  return (
+    <ul className={isGrid ? 'book-grid' : 'card-list'}>
+      {items.map(({ book, index }) => {
+        const name = localizedBookName(book, lang, index)
+        const abbr = localizedBookAbbr(book, lang, index)
+        const read = readBooks.has(Number(book.bookId))
+        const label = read ? `${name}, leído` : name
+        return (
+          <li key={book.bookId}>
+            {isGrid ? (
+              <a
+                className={read ? 'book-tile read' : 'book-tile'}
+                href={`#/books/${book.bookId}/chapters`}
+                title={label}
+                aria-label={label}
+              >
+                {abbr}
+              </a>
+            ) : (
+              <a
+                className={read ? 'card read' : 'card'}
+                href={`#/books/${book.bookId}/chapters`}
+                aria-label={label}
+              >
+                <strong>{name}</strong>
+                <span>{abbr}</span>
+              </a>
+            )}
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
 export default function BooksPage({ version }) {
   const [books, setBooks] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [view, setView] = useState(readBooksView)
+  const [langByVersion, setLangByVersion] = useState({})
+  const [readBooks] = useState(readBookIds)
+  const lang = langByVersion[version] ?? versionLanguage(version)
 
   useEffect(() => {
     let cancelled = false
@@ -68,50 +119,65 @@ export default function BooksPage({ version }) {
     writeBooksView(next)
   }
 
-  const toggleButton = (
-    <button
-      type="button"
-      className="view-toggle"
-      onClick={toggleView}
-      title={isGrid ? 'Ver lista con nombres completos' : 'Ver cuadrícula con abreviaturas'}
-      aria-label={isGrid ? 'Ver lista con nombres completos' : 'Ver cuadrícula con abreviaturas'}
-      aria-pressed={!isGrid}
-    >
-      {isGrid ? <ListIcon /> : <GridIcon />}
-    </button>
+  const toggleLanguage = () => {
+    setLangByVersion((current) => ({
+      ...current,
+      [version]: nextBookLanguage(current[version] ?? versionLanguage(version)),
+    }))
+  }
+
+  const actions = (
+    <>
+      <button
+        type="button"
+        className="lang-toggle"
+        onClick={toggleLanguage}
+        title="Cambiar idioma de los libros"
+        aria-label={`Idioma de los libros: ${languageLabel(lang)}. Cambiar idioma`}
+      >
+        {languageLabel(lang)}
+      </button>
+      <button
+        type="button"
+        className="view-toggle"
+        onClick={toggleView}
+        title={isGrid ? 'Ver lista con nombres completos' : 'Ver cuadrícula con abreviaturas'}
+        aria-label={isGrid ? 'Ver lista con nombres completos' : 'Ver cuadrícula con abreviaturas'}
+        aria-pressed={!isGrid}
+      >
+        {isGrid ? <ListIcon /> : <GridIcon />}
+      </button>
+    </>
   )
+
+  const { oldTestament, newTestament } = splitByTestament(books)
 
   return (
     <section className="page">
       <PageHeader
-        title={version}
+        title={displayVersionName(version)}
         subtitle="Libros"
         backTo="#/"
         backLabel="Versiones"
-        actions={toggleButton}
+        actions={actions}
       />
       <StatusMessage loading={loading} error={error} empty={!loading && !error && books.length === 0} />
-      <ul className={isGrid ? 'book-grid' : 'card-list'}>
-        {books.map((book) => (
-          <li key={book.bookId}>
-            {isGrid ? (
-              <a
-                className="book-tile"
-                href={`#/books/${book.bookId}/chapters`}
-                title={book.name}
-                aria-label={book.name}
-              >
-                {bookAbbreviation(book.name)}
-              </a>
-            ) : (
-              <a className="card" href={`#/books/${book.bookId}/chapters`}>
-                <strong>{book.name}</strong>
-                <span>{bookAbbreviation(book.name)}</span>
-              </a>
-            )}
-          </li>
-        ))}
-      </ul>
+      {oldTestament.length > 0 ? (
+        <div className="book-section">
+          <h2 className="section-heading">
+            <span>{testamentLabel(lang, 'ot')}</span>
+          </h2>
+          <BookList items={oldTestament} isGrid={isGrid} lang={lang} readBooks={readBooks} />
+        </div>
+      ) : null}
+      {newTestament.length > 0 ? (
+        <div className="book-section">
+          <h2 className="section-heading">
+            <span>{testamentLabel(lang, 'nt')}</span>
+          </h2>
+          <BookList items={newTestament} isGrid={isGrid} lang={lang} readBooks={readBooks} />
+        </div>
+      ) : null}
     </section>
   )
 }

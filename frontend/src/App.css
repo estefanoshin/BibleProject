@@ -21,7 +21,8 @@
   padding-top: 4px;
 }
 
-.view-toggle {
+.view-toggle,
+.lang-toggle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -36,7 +37,14 @@
   cursor: pointer;
 }
 
-.view-toggle:hover {
+.lang-toggle {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.view-toggle:hover,
+.lang-toggle:hover {
   background: var(--accent-bg);
 }
 
@@ -44,6 +52,31 @@
   width: 20px;
   height: 20px;
   fill: currentColor;
+}
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-family: var(--ui);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.section-heading::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.version-group + .version-group,
+.book-section + .book-section {
+  margin-top: 22px;
 }
 
 .back-button {
@@ -159,14 +192,16 @@
   white-space: nowrap;
 }
 
-.read-check {
-  position: absolute;
-  top: 4px;
-  right: 6px;
+.chapter-tile.read,
+.book-tile.read,
+.card.read {
+  border-color: #2f8f4e;
+  background: #e3f4e8;
+  color: #1f6b39;
+}
+
+.card.read span {
   color: #2f8f4e;
-  font-size: 0.72rem;
-  line-height: 1;
-  font-weight: 700;
 }
 
 .mark-read-button {
@@ -193,13 +228,9 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  .read-check,
-  .mark-read-button.marked {
-    color: #5dce7e;
-  }
-
   .mark-read-button.marked {
     border-color: #5dce7e;
+    color: #5dce7e;
   }
 }
 
@@ -207,6 +238,32 @@
 .chapter-tile:hover,
 .book-tile:hover {
   background: var(--accent-bg);
+}
+
+.chapter-tile.read:hover,
+.book-tile.read:hover,
+.card.read:hover {
+  background: #cfebd8;
+}
+
+@media (prefers-color-scheme: dark) {
+  .chapter-tile.read,
+  .book-tile.read,
+  .card.read {
+    border-color: #3f9c5f;
+    background: #1e3a29;
+    color: #9ae2b1;
+  }
+
+  .card.read span {
+    color: #6fc98c;
+  }
+
+  .chapter-tile.read:hover,
+  .book-tile.read:hover,
+  .card.read:hover {
+    background: #27503a;
+  }
 }
 
 .verses {

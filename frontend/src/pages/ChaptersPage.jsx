@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { fetchChapters } from '../api'
 import { PageHeader, StatusMessage } from '../components/PageHeader.jsx'
-import { isChapterRead } from '../readProgress'
+import { isChapterRead, rememberBookChapters } from '../readProgress'
 import { navigate } from '../router'
 import { useHorizontalSwipe } from '../useSwipe'
 
@@ -18,6 +18,7 @@ export default function ChaptersPage({ bookId }) {
       .then((data) => {
         if (!cancelled) {
           setChapters(data)
+          rememberBookChapters(bookId, data.map((chapter) => chapter.chapterId))
         }
       })
       .catch((err) => {
@@ -46,18 +47,20 @@ export default function ChaptersPage({ bookId }) {
       <PageHeader title={bookName} subtitle={version ? `${version} · Capítulos` : 'Capítulos'} backTo={booksHref} backLabel="Libros" />
       <StatusMessage loading={loading} error={error} empty={!loading && !error && chapters.length === 0} />
       <ul className="chapter-grid">
-        {chapters.map((chapter) => (
-          <li key={chapter.chapterId}>
-            <a className="chapter-tile" href={`#/chapters/${chapter.chapterId}`}>
-              {chapter.chapterNumber}
-              {isChapterRead(chapter.chapterId) ? (
-                <span className="read-check" aria-label="Leído">
-                  ✓
-                </span>
-              ) : null}
-            </a>
-          </li>
-        ))}
+        {chapters.map((chapter) => {
+          const read = isChapterRead(chapter.chapterId)
+          return (
+            <li key={chapter.chapterId}>
+              <a
+                className={read ? 'chapter-tile read' : 'chapter-tile'}
+                href={`#/chapters/${chapter.chapterId}`}
+                aria-label={read ? `Capítulo ${chapter.chapterNumber}, leído` : `Capítulo ${chapter.chapterNumber}`}
+              >
+                {chapter.chapterNumber}
+              </a>
+            </li>
+          )
+        })}
       </ul>
     </section>
   )
