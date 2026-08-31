@@ -121,11 +121,14 @@ export default function ChaptersPage({ bookId }) {
     )
   }
 
-  function markSelectedRead() {
+  const selectedAllRead =
+    selected.size > 0 && [...selected].every((key) => readKeys.has(key))
+
+  function applySelectedReadState() {
     if (selected.size === 0) {
       return
     }
-    setChaptersRead([...selected], true)
+    setChaptersRead([...selected], !selectedAllRead)
     setSelected(new Set())
     setSelecting(false)
   }
@@ -206,11 +209,11 @@ export default function ChaptersPage({ bookId }) {
           </button>
           <button
             type="button"
-            className="mark-read-button"
+            className={selectedAllRead ? 'mark-read-button marked' : 'mark-read-button'}
             disabled={selected.size === 0}
-            onClick={markSelectedRead}
+            onClick={applySelectedReadState}
           >
-            {markSelectedLabel(lang, selected.size)}
+            {markSelectedLabel(lang, selected.size, selectedAllRead)}
           </button>
         </div>
       ) : null}

@@ -16,6 +16,7 @@ const STRINGS = {
     markRead: 'Marcar como leído',
     markedRead: 'Marcado como leído',
     markSelectedRead: 'Marcar como leídos',
+    markSelectedUnread: 'Marcar como no leídos',
     selectChapters: 'Seleccionar capítulos',
     selectAll: 'Seleccionar todos',
     selectedSuffix: 'seleccionado',
@@ -43,6 +44,7 @@ const STRINGS = {
     markRead: 'Mark as read',
     markedRead: 'Marked as read',
     markSelectedRead: 'Mark as read',
+    markSelectedUnread: 'Mark as unread',
     selectChapters: 'Select chapters',
     selectAll: 'Select all',
     selectedSuffix: 'selected',
@@ -70,6 +72,7 @@ const STRINGS = {
     markRead: '읽음으로 표시',
     markedRead: '읽음으로 표시됨',
     markSelectedRead: '읽음으로 표시',
+    markSelectedUnread: '읽지 않음으로 표시',
     selectChapters: '장 선택',
     selectAll: '모두 선택',
     selectedSuffix: '선택됨',
@@ -124,8 +127,8 @@ export function readButtonLabel(lang, read) {
   return t(lang, read ? 'markedRead' : 'markRead')
 }
 
-export function markSelectedLabel(lang, count) {
-  const base = t(lang, 'markSelectedRead')
+export function markSelectedLabel(lang, count, unread = false) {
+  const base = t(lang, unread ? 'markSelectedUnread' : 'markSelectedRead')
   if (!count) {
     return base
   }
