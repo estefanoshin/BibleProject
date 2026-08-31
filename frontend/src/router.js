@@ -17,6 +17,12 @@ function parseHash() {
   if (parts[0] === 'chapters' && parts[1]) {
     return { name: 'reader', chapterId: Number(parts[1]) }
   }
+  if (parts[0] === 'notes') {
+    return { name: 'notes' }
+  }
+  if (parts[0] === 'saved') {
+    return { name: 'saved' }
+  }
   return { name: 'versions' }
 }
 

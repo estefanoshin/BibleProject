@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { fetchBooks } from '../api'
 import {
+  bookMatchesQuery,
   canonicalBookId,
   localizedBookAbbr,
   localizedBookName,
@@ -78,6 +79,7 @@ export default function BooksPage({ version }) {
   const [loading, setLoading] = useState(true)
   const [failure, setFailure] = useState(null)
   const [view, setView] = useState(readBooksView)
+  const [query, setQuery] = useState('')
   const { readBooks } = useReadProgress()
   const [lang, cycleLanguage] = useBookPageLanguage(version)
 
@@ -143,10 +145,15 @@ export default function BooksPage({ version }) {
   )
 
   const { oldTestament, newTestament } = splitByTestament(books)
+  const matchBook = ({ book, index }) => bookMatchesQuery(book, index, query)
+  const visibleOld = oldTestament.filter(matchBook)
+  const visibleNew = newTestament.filter(matchBook)
   const error = failure == null ? '' : failure || t(lang, 'booksError')
+  const noMatches =
+    !loading && !error && books.length > 0 && visibleOld.length === 0 && visibleNew.length === 0
 
   return (
-    <section className="page">
+    <section className="page books-page">
       <PageHeader
         title={displayVersionName(version)}
         subtitle={t(lang, 'books')}
@@ -161,22 +168,52 @@ export default function BooksPage({ version }) {
         empty={!loading && !error && books.length === 0}
         lang={lang}
       />
-      {oldTestament.length > 0 ? (
+      {visibleOld.length > 0 ? (
         <div className="book-section">
           <h2 className="section-heading">
             <span>{testamentLabel(lang, 'ot')}</span>
           </h2>
-          <BookList items={oldTestament} isGrid={isGrid} lang={lang} readBooks={readBooks} />
+          <BookList items={visibleOld} isGrid={isGrid} lang={lang} readBooks={readBooks} />
         </div>
       ) : null}
-      {newTestament.length > 0 ? (
+      {visibleNew.length > 0 ? (
         <div className="book-section">
           <h2 className="section-heading">
             <span>{testamentLabel(lang, 'nt')}</span>
           </h2>
-          <BookList items={newTestament} isGrid={isGrid} lang={lang} readBooks={readBooks} />
+          <BookList items={visibleNew} isGrid={isGrid} lang={lang} readBooks={readBooks} />
         </div>
       ) : null}
+      {noMatches ? <p className="status">{t(lang, 'noMatchingBooks')}</p> : null}
+      <div className="book-finder">
+        <label className="book-finder-field">
+          <span className="visually-hidden">{t(lang, 'findBook')}</span>
+          <svg className="book-finder-icon" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+            <circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
+            <path d="M12.5 12.5 17 17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          </svg>
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={t(lang, 'findBookPlaceholder')}
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck="false"
+            enterKeyHint="search"
+          />
+        </label>
+        {query ? (
+          <button
+            type="button"
+            className="book-finder-clear"
+            onClick={() => setQuery('')}
+            aria-label={t(lang, 'clearSearch')}
+          >
+            ×
+          </button>
+        ) : null}
+      </div>
     </section>
   )
 }

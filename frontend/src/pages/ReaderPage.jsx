@@ -5,6 +5,7 @@ import { canonicalBookIdFor, chapterIdInVersion } from '../chapterIdentity'
 import { resolveChapterNeighbors } from '../chapterNavigation'
 import { PageHeader, StatusMessage } from '../components/PageHeader.jsx'
 import { chapterKey, isChapterRead, setChapterRead } from '../readProgress'
+import { savePassage, saveVerseNote, usePassageStorage, verseNoteKey } from '../passageStorage'
 import {
   currentVerseAnchor,
   rememberVerseAnchor,
@@ -19,6 +20,63 @@ import { displayVersionName, groupVersions } from '../versionMeta'
 
 const NO_NEIGHBORS = { previous: null, next: null }
 
+function foldText(text) {
+  return String(text)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+}
+
+function matchRanges(text, query) {
+  const needle = foldText(query).replace(/\s+/g, ' ').trim()
+  if (!needle) {
+    return []
+  }
+  const map = []
+  let folded = ''
+  for (let i = 0; i < text.length; i += 1) {
+    const piece = foldText(text[i])
+    for (let j = 0; j < piece.length; j += 1) {
+      map.push(i)
+      folded += piece[j]
+    }
+  }
+  const ranges = []
+  let from = 0
+  while (from <= folded.length - needle.length) {
+    const at = folded.indexOf(needle, from)
+    if (at === -1) {
+      break
+    }
+    ranges.push([map[at], map[at + needle.length - 1] + 1])
+    from = at + needle.length
+  }
+  return ranges
+}
+
+function HighlightedText({ text, ranges, currentRange }) {
+  if (!ranges.length) {
+    return text
+  }
+  const parts = []
+  let cursor = 0
+  ranges.forEach(([start, end], index) => {
+    if (start > cursor) {
+      parts.push(text.slice(cursor, start))
+    }
+    parts.push(
+      <mark key={`${start}-${end}`} className={index === currentRange ? 'verse-hit current' : 'verse-hit'}>
+        {text.slice(start, end)}
+      </mark>,
+    )
+    cursor = end
+  })
+  if (cursor < text.length) {
+    parts.push(text.slice(cursor))
+  }
+  return parts
+}
+
 export default function ReaderPage({ chapterId }) {
   const [chapter, setChapter] = useState(null)
   const [neighbors, setNeighbors] = useState(NO_NEIGHBORS)
@@ -27,8 +85,23 @@ export default function ReaderPage({ chapterId }) {
   const [canonicalId, setCanonicalId] = useState(null)
   const [read, setRead] = useState(false)
   const [versions, setVersions] = useState([])
+  const [selectedVerseIds, setSelectedVerseIds] = useState(() => new Set())
+  const [noteOpen, setNoteOpen] = useState(false)
+  const [note, setNote] = useState('')
+  const [actionMessage, setActionMessage] = useState('')
+  const [query, setQuery] = useState('')
+  const [matchIndex, setMatchIndex] = useState(0)
   const anchorRef = useRef(null)
   const lang = useUiLanguage(chapter?.version)
+  const { passageNotes } = usePassageStorage()
+  const notedVerseKeys = new Set(
+    passageNotes.flatMap((item) => {
+      const verse = item.verses?.[0]
+      return verse ? [verseNoteKey(item.canonicalBookId, item.chapterNumber, verse.verseNumber)] : []
+    }),
+  )
+  const selectedVerses =
+    chapter?.verses?.filter((verse) => selectedVerseIds.has(String(verse.verseId))) ?? []
 
   useEffect(() => {
     let cancelled = false
@@ -37,6 +110,9 @@ export default function ReaderPage({ chapterId }) {
     setNeighbors(NO_NEIGHBORS)
     setCanonicalId(null)
     setRead(false)
+    setSelectedVerseIds(new Set())
+    setNoteOpen(false)
+    setActionMessage('')
     anchorRef.current = takeVerseAnchor()
     fetchChapterVerses(chapterId)
       .then(async (data) => {
@@ -80,6 +156,16 @@ export default function ReaderPage({ chapterId }) {
     }
   }, [chapter])
 
+  useLayoutEffect(() => {
+    if (!query.trim()) {
+      return
+    }
+    document.querySelector('.verse-hit.current')?.scrollIntoView({
+      block: 'center',
+      inline: 'nearest',
+    })
+  }, [query, matchIndex, chapter])
+
   useEffect(() => {
     let cancelled = false
     fetchVersions()
@@ -97,7 +183,16 @@ export default function ReaderPage({ chapterId }) {
   useHorizontalSwipe({
     onSwipeLeft: () => goTo(neighbors.next),
     onSwipeRight: () => goTo(neighbors.previous),
+    enabled: selectedVerseIds.size === 0,
   })
+
+  useEffect(() => {
+    if (!actionMessage) {
+      return undefined
+    }
+    const timeout = window.setTimeout(() => setActionMessage(''), 2200)
+    return () => window.clearTimeout(timeout)
+  }, [actionMessage])
 
   function goTo(target) {
     if (target) {
@@ -110,6 +205,101 @@ export default function ReaderPage({ chapterId }) {
     if (key) {
       setRead(setChapterRead(key, !read))
     }
+  }
+
+  function toggleVerse(verseId) {
+    const id = String(verseId)
+    setSelectedVerseIds((current) => {
+      const next = new Set(current)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+    setActionMessage('')
+  }
+
+  function clearSelection() {
+    setSelectedVerseIds(new Set())
+    setNoteOpen(false)
+    setNote('')
+    setActionMessage('')
+  }
+
+  function selectedPassage() {
+    return {
+      canonicalBookId: canonicalId,
+      bookId: chapter.bookId,
+      bookName,
+      chapterId,
+      chapterNumber: chapter.chapterNumber,
+      version: chapter.version,
+      reference: passageReference(bookName, chapter.chapterNumber, selectedVerses),
+      verses: selectedVerses.map(({ verseId, verseNumber, text }) => ({
+        verseId,
+        verseNumber,
+        text,
+      })),
+    }
+  }
+
+  function passageText() {
+    const passage = selectedPassage()
+    const body = passage.verses
+      .map((verse) => `${verse.verseNumber} ${verse.text}`)
+      .join('\n')
+    return `${passage.reference} (${displayVersionName(passage.version)})\n${body}`
+  }
+
+  async function copySelection(messageKey = 'passageCopied') {
+    const text = passageText()
+    try {
+      await navigator.clipboard.writeText(text)
+    } catch {
+      const input = document.createElement('textarea')
+      input.value = text
+      input.style.position = 'fixed'
+      input.style.opacity = '0'
+      document.body.appendChild(input)
+      input.select()
+      document.execCommand('copy')
+      input.remove()
+    }
+    setActionMessage(t(lang, messageKey))
+  }
+
+  function saveSelection() {
+    const saved = savePassage(selectedPassage())
+    setActionMessage(t(lang, saved ? 'passageSaved' : 'passageSaveError'))
+  }
+
+  function saveNote() {
+    if (!note.trim() || selectedVerses.length !== 1) {
+      return
+    }
+    const saved = saveVerseNote(selectedPassage(), note)
+    if (saved) {
+      setNote('')
+      setNoteOpen(false)
+    }
+    setActionMessage(t(lang, saved ? 'noteSaved' : 'passageSaveError'))
+  }
+
+  async function shareSelection() {
+    const text = passageText()
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: selectedPassage().reference, text })
+        return
+      } catch (error) {
+        if (error?.name === 'AbortError') {
+          return
+        }
+      }
+    }
+    await copySelection('shareFallback')
   }
 
   async function openInVersion(version) {
@@ -129,9 +319,38 @@ export default function ReaderPage({ chapterId }) {
   const chaptersHref = chapter ? `#/books/${chapter.bookId}/chapters` : '#/'
   const error = failure == null ? '' : failure || t(lang, 'chapterError')
   const bookName = bookNameForId(canonicalId, lang, localizedBookName({ name: chapter?.bookName }, lang))
+  const verseHits = new Map()
+  const matchList = []
+  if (chapter && query.trim()) {
+    for (const verse of chapter.verses) {
+      const ranges = matchRanges(verse.text, query)
+      if (ranges.length) {
+        verseHits.set(String(verse.verseId), ranges)
+        ranges.forEach((_, rangeIndex) => {
+          matchList.push({ verseId: String(verse.verseId), rangeIndex })
+        })
+      }
+    }
+  }
+  const activeMatch = matchList.length
+    ? matchList[Math.min(matchIndex, matchList.length - 1)]
+    : null
+  const shownIndex = matchList.length ? Math.min(matchIndex, matchList.length - 1) : 0
+
+  function setFinderQuery(value) {
+    setQuery(value)
+    setMatchIndex(0)
+  }
+
+  function stepMatch(direction) {
+    if (matchList.length === 0) {
+      return
+    }
+    setMatchIndex((current) => (current + direction + matchList.length) % matchList.length)
+  }
 
   return (
-    <section className="page reader">
+    <section className={selectedVerses.length > 0 ? 'page reader selecting-verses' : 'page reader'}>
       <PageHeader
         title={chapter ? chapterTitle(lang, bookName, chapter.chapterNumber) : t(lang, 'reading')}
         subtitle={chapter ? displayVersionName(chapter.version) : null}
@@ -148,12 +367,40 @@ export default function ReaderPage({ chapterId }) {
       {chapter ? (
         <>
           <article className="verses">
-            {chapter.verses.map((verse) => (
-              <p key={verse.verseId} data-verse={verse.verseNumber}>
+            {chapter.verses.map((verse) => {
+              const selected = selectedVerseIds.has(String(verse.verseId))
+              const hasNote = notedVerseKeys.has(
+                verseNoteKey(canonicalId, chapter.chapterNumber, verse.verseNumber),
+              )
+              const ranges = verseHits.get(String(verse.verseId)) ?? []
+              const currentRange =
+                activeMatch?.verseId === String(verse.verseId) ? activeMatch.rangeIndex : -1
+              return (
+              <p
+                key={verse.verseId}
+                data-verse={verse.verseNumber}
+                className={selected ? 'verse selected' : 'verse'}
+                role="button"
+                tabIndex="0"
+                aria-pressed={selected}
+                onClick={() => toggleVerse(verse.verseId)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    toggleVerse(verse.verseId)
+                  }
+                }}
+              >
                 <sup>{verse.verseNumber}</sup>
-                {verse.text}
+                <HighlightedText text={verse.text} ranges={ranges} currentRange={currentRange} />
+                {hasNote ? (
+                  <span className="verse-note-mark" title={t(lang, 'verseHasNote')} aria-label={t(lang, 'verseHasNote')}>
+                    <ActionIcon name="note" />
+                  </span>
+                ) : null}
               </p>
-            ))}
+              )
+            })}
           </article>
           <button
             type="button"
@@ -170,21 +417,326 @@ export default function ReaderPage({ chapterId }) {
           </nav>
         </>
       ) : null}
-      <VersionBar
-        versions={versions}
-        current={chapter?.version}
-        onSelect={openInVersion}
-        lang={lang}
-      />
+      {selectedVerses.length > 0 ? (
+        <PassageActionBar
+          count={selectedVerses.length}
+          message={actionMessage}
+          lang={lang}
+          canNote={selectedVerses.length === 1}
+          onCopy={copySelection}
+          onNote={() => {
+            if (selectedVerses.length === 1) {
+              setNoteOpen(true)
+            } else {
+              setActionMessage(t(lang, 'noteSingleVerse'))
+            }
+          }}
+          onSave={saveSelection}
+          onShare={shareSelection}
+          onClose={clearSelection}
+        />
+      ) : (
+        <div className="reader-dock" data-swipe-ignore="true">
+          <VerseFinder
+            query={query}
+            matchIndex={shownIndex}
+            matchCount={matchList.length}
+            lang={lang}
+            onQueryChange={setFinderQuery}
+            onPrev={() => stepMatch(-1)}
+            onNext={() => stepMatch(1)}
+          />
+          <VersionBar
+            versions={versions}
+            current={chapter?.version}
+            onSelect={openInVersion}
+            lang={lang}
+          />
+        </div>
+      )}
+      {noteOpen ? (
+        <NoteDialog
+          reference={selectedPassage().reference}
+          note={note}
+          lang={lang}
+          onChange={setNote}
+          onCancel={() => setNoteOpen(false)}
+          onSave={saveNote}
+        />
+      ) : null}
     </section>
   )
 }
 
+const DISMISS_DISTANCE = 56
+
+function PassageActionBar({
+  count,
+  message,
+  lang,
+  canNote,
+  onCopy,
+  onNote,
+  onSave,
+  onShare,
+  onClose,
+}) {
+  const drag = useRef(null)
+  const [offset, setOffset] = useState(0)
+  const [dragging, setDragging] = useState(false)
+  const actions = [
+    ['copy', 'copyPassage', onCopy, true],
+    ['note', 'notePassage', onNote, canNote],
+    ['save', 'savePassage', onSave, true],
+    ['share', 'sharePassage', onShare, true],
+  ]
+
+  function pointerFrom(event) {
+    if (event.touches?.length) {
+      return event.touches[0]
+    }
+    if (event.changedTouches?.length) {
+      return event.changedTouches[0]
+    }
+    return event
+  }
+
+  function beginDrag(event) {
+    if (event.pointerType === 'mouse' && event.button !== 0) {
+      return
+    }
+    if (event.target.closest?.('button')) {
+      return
+    }
+    const point = pointerFrom(event)
+    drag.current = { y: point.clientY }
+    setDragging(true)
+    if (event.pointerId != null) {
+      event.currentTarget.setPointerCapture?.(event.pointerId)
+    }
+  }
+
+  function moveDrag(event) {
+    if (!drag.current) {
+      return
+    }
+    const point = pointerFrom(event)
+    const dy = Math.max(0, point.clientY - drag.current.y)
+    setOffset(dy)
+    if (event.cancelable && dy > 8) {
+      event.preventDefault()
+    }
+  }
+
+  function endDrag(event) {
+    if (!drag.current) {
+      return
+    }
+    const point = pointerFrom(event)
+    const dy = Math.max(0, point.clientY - drag.current.y)
+    drag.current = null
+    setDragging(false)
+    if (dy >= DISMISS_DISTANCE) {
+      onClose()
+      return
+    }
+    setOffset(0)
+  }
+
+  return (
+    <aside
+      className={dragging ? 'passage-action-bar dragging' : 'passage-action-bar'}
+      data-swipe-ignore="true"
+      style={{
+        transform: offset ? `translateY(${offset}px)` : undefined,
+        opacity: offset ? Math.max(0.35, 1 - offset / 180) : undefined,
+      }}
+      onPointerDown={beginDrag}
+      onPointerMove={moveDrag}
+      onPointerUp={endDrag}
+      onPointerCancel={endDrag}
+      onTouchStart={beginDrag}
+      onTouchMove={moveDrag}
+      onTouchEnd={endDrag}
+      onTouchCancel={endDrag}
+      aria-label={t(lang, 'passageActions')}
+    >
+      <span className="passage-action-handle" aria-hidden="true" />
+      <button
+        type="button"
+        className="passage-action-close"
+        onClick={onClose}
+        title={t(lang, 'close')}
+        aria-label={t(lang, 'close')}
+      >
+        ×
+      </button>
+      <span className="passage-selection-count">{count} {t(lang, 'versesSelected')}</span>
+      {message ? <span className="passage-action-message" role="status">{message}</span> : null}
+      <div className="passage-actions">
+        {actions.map(([icon, label, action, enabled]) => (
+          <button key={icon} type="button" disabled={!enabled} onClick={() => action()}>
+            <ActionIcon name={icon} />
+            <span>{t(lang, label)}</span>
+          </button>
+        ))}
+      </div>
+    </aside>
+  )
+}
+
+function NoteDialog({ reference, note, lang, onChange, onCancel, onSave }) {
+  return (
+    <div className="note-dialog-backdrop" role="presentation" onMouseDown={onCancel}>
+      <section
+        className="note-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="note-dialog-title"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <div className="note-dialog-header">
+          <h2 id="note-dialog-title">{t(lang, 'addNote')}</h2>
+          <button
+            type="button"
+            className="note-dialog-close"
+            onClick={onCancel}
+            title={t(lang, 'close')}
+            aria-label={t(lang, 'close')}
+          >
+            ×
+          </button>
+        </div>
+        <p>{reference}</p>
+        <textarea
+          autoFocus
+          value={note}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={t(lang, 'notePlaceholder')}
+          rows="5"
+        />
+        <div className="note-dialog-actions">
+          <button type="button" onClick={onCancel}>{t(lang, 'cancel')}</button>
+          <button type="button" className="primary" disabled={!note.trim()} onClick={onSave}>
+            {t(lang, 'saveNote')}
+          </button>
+        </div>
+      </section>
+    </div>
+  )
+}
+
+function ActionIcon({ name }) {
+  if (name === 'copy') {
+    return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 8h11v11H8zM5 16H3V3h13v2" /></svg>
+  }
+  if (name === 'note') {
+    return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v13H8l-4 3zM8 8h8M8 12h6" /></svg>
+  }
+  if (name === 'save') {
+    return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z" /></svg>
+  }
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V3M7 8l5-5 5 5M5 13v7h14v-7" /></svg>
+}
+
+function passageReference(bookName, chapterNumber, verses) {
+  const numbers = verses.map((verse) => Number(verse.verseNumber)).filter(Number.isFinite)
+  const groups = []
+  for (const number of numbers) {
+    const last = groups.at(-1)
+    if (last && number === last[1] + 1) {
+      last[1] = number
+    } else {
+      groups.push([number, number])
+    }
+  }
+  const verseLabel = groups
+    .map(([start, end]) => (start === end ? String(start) : `${start}-${end}`))
+    .join(',')
+  return `${bookName} ${chapterNumber}:${verseLabel}`
+}
+
+function VerseFinder({ query, matchIndex, matchCount, lang, onQueryChange, onPrev, onNext }) {
+  return (
+    <div className="verse-finder">
+      <label className="verse-finder-field">
+        <span className="visually-hidden">{t(lang, 'findText')}</span>
+        <svg className="verse-finder-icon" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+          <circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
+          <path d="M12.5 12.5 17 17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
+        <input
+          type="search"
+          value={query}
+          onChange={(event) => onQueryChange(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault()
+              if (event.shiftKey) {
+                onPrev()
+              } else {
+                onNext()
+              }
+            }
+          }}
+          placeholder={t(lang, 'findTextPlaceholder')}
+          autoComplete="off"
+          autoCorrect="off"
+          spellCheck="false"
+          enterKeyHint="search"
+        />
+      </label>
+      {query ? (
+        <>
+          <span className="verse-finder-count">
+            {matchCount ? `${matchIndex + 1}/${matchCount}` : '0/0'}
+          </span>
+          <button
+            type="button"
+            className="verse-finder-nav"
+            onClick={onPrev}
+            disabled={!matchCount}
+            title={t(lang, 'findPrevious')}
+            aria-label={t(lang, 'findPrevious')}
+          >
+            ‹
+          </button>
+          <button
+            type="button"
+            className="verse-finder-nav"
+            onClick={onNext}
+            disabled={!matchCount}
+            title={t(lang, 'findNext')}
+            aria-label={t(lang, 'findNext')}
+          >
+            ›
+          </button>
+          <button
+            type="button"
+            className="verse-finder-clear"
+            onClick={() => onQueryChange('')}
+            aria-label={t(lang, 'clearSearch')}
+          >
+            ×
+          </button>
+        </>
+      ) : null}
+    </div>
+  )
+}
+
 function VersionBar({ versions, current, onSelect, lang }) {
+  const barRef = useRef(null)
   const activeRef = useRef(null)
 
   useEffect(() => {
-    activeRef.current?.scrollIntoView({ block: 'nearest', inline: 'center' })
+    const bar = barRef.current
+    const active = activeRef.current
+    if (!bar || !active) {
+      return
+    }
+    const centered = active.offsetLeft - (bar.clientWidth - active.offsetWidth) / 2
+    bar.scrollLeft = Math.max(0, Math.min(centered, bar.scrollWidth - bar.clientWidth))
   }, [current, versions])
 
   if (versions.length === 0) {
@@ -194,7 +746,12 @@ function VersionBar({ versions, current, onSelect, lang }) {
   const ordered = groupVersions(versions, t(lang, 'otherLanguages')).flatMap((group) => group.items)
 
   return (
-    <nav className="version-bar" data-swipe-ignore="true" aria-label={t(lang, 'otherVersions')}>
+    <nav
+      className="version-bar"
+      ref={barRef}
+      data-swipe-ignore="true"
+      aria-label={t(lang, 'otherVersions')}
+    >
       <ul className="version-tabs">
         {ordered.map((item) => {
           const active = item.version === current

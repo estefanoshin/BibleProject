@@ -129,6 +129,21 @@ export function catalogEntry(book, index) {
   return null
 }
 
+export function bookMatchesQuery(book, index, query) {
+  const needle = normalize(query)
+  if (!needle) {
+    return true
+  }
+  const entry = catalogEntry(book, index)
+  const haystacks = [book?.name, book?.abbreviation]
+  if (entry) {
+    for (const lang of [SPANISH, ENGLISH, KOREAN]) {
+      haystacks.push(entry[lang]?.name, entry[lang]?.abbr)
+    }
+  }
+  return haystacks.some((value) => value && normalize(value).includes(needle))
+}
+
 // Stable id for the same book across versions and languages.
 export function canonicalBookId(book, index) {
   return catalogEntry(book, index)?.id ?? null

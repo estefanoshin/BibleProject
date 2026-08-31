@@ -3,6 +3,7 @@ import VersionsPage from './pages/VersionsPage.jsx'
 import BooksPage from './pages/BooksPage.jsx'
 import ChaptersPage from './pages/ChaptersPage.jsx'
 import ReaderPage from './pages/ReaderPage.jsx'
+import { SavedNotesPage, SavedPassagesPage } from './pages/SavedPages.jsx'
 import './App.css'
 
 function App() {
@@ -16,6 +17,12 @@ function App() {
   }
   if (route.name === 'reader') {
     return <ReaderPage chapterId={route.chapterId} />
+  }
+  if (route.name === 'notes') {
+    return <SavedNotesPage />
+  }
+  if (route.name === 'saved') {
+    return <SavedPassagesPage />
   }
   return <VersionsPage />
 }

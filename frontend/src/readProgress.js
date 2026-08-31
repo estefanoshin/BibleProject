@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Capacitor } from '@capacitor/core'
-import { CapacitorPersistentAccount } from '@capgo/capacitor-persistent-account'
+import { hydrateDurable, persistDurable } from './durableAccount'
 
 // Progress is stored per canonical book + chapter number, so marking a chapter read
 // in one translation marks it read in every translation.
@@ -74,7 +73,6 @@ function readLocalBookChapters() {
 
 let chapterKeys = readLocalKeys()
 let bookChapters = readLocalBookChapters()
-let persistChain = Promise.resolve()
 
 function writeLocal() {
   try {
@@ -85,26 +83,12 @@ function writeLocal() {
   }
 }
 
-function durablePayload() {
-  return {
-    readChapters: [...chapterKeys],
-    bookChapters,
-  }
-}
-
-function persistDurable() {
-  if (!Capacitor.isNativePlatform()) {
-    return persistChain
-  }
-  persistChain = persistChain
-    .then(() => CapacitorPersistentAccount.saveAccount({ data: durablePayload() }))
-    .catch(() => {})
-  return persistChain
-}
-
 function persist() {
   writeLocal()
-  persistDurable()
+  persistDurable({
+    readChapters: [...chapterKeys],
+    bookChapters,
+  })
   notify()
 }
 
@@ -119,33 +103,16 @@ function mergeBookMaps(primary, extra) {
   return merged
 }
 
-function payloadFromDurable(raw) {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
-    return null
-  }
-  // Web implementation of the plugin stores the whole { data } options object.
-  if (raw.data && typeof raw.data === 'object' && !Array.isArray(raw.data) && raw.readChapters == null) {
-    return payloadFromDurable(raw.data)
-  }
-  return raw
-}
-
 export async function hydrateReadProgress() {
-  if (Capacitor.isNativePlatform()) {
-    try {
-      const result = await CapacitorPersistentAccount.readAccount()
-      const payload = payloadFromDurable(result?.data)
-      if (payload) {
-        chapterKeys = new Set([...chapterKeys, ...parseKeySet(payload.readChapters)])
-        bookChapters = mergeBookMaps(bookChapters, parseBookMap(payload.bookChapters))
-      }
-    } catch {
-      // Keep local cache if the device store is unavailable.
-    }
-  }
+  const payload = await hydrateDurable()
+  chapterKeys = new Set([...chapterKeys, ...parseKeySet(payload.readChapters)])
+  bookChapters = mergeBookMaps(bookChapters, parseBookMap(payload.bookChapters))
   writeLocal()
   if (chapterKeys.size > 0 || Object.keys(bookChapters).length > 0) {
-    await persistDurable()
+    await persistDurable({
+      readChapters: [...chapterKeys],
+      bookChapters,
+    })
   }
   notify()
 }
