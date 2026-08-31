@@ -12,7 +12,7 @@ export function useHorizontalSwipe({ onSwipeLeft, onSwipeRight } = {}) {
     let start = null
 
     const onStart = (event) => {
-      if (event.touches.length !== 1) {
+      if (event.touches.length !== 1 || event.target?.closest?.('[data-swipe-ignore]')) {
         start = null
         return
       }

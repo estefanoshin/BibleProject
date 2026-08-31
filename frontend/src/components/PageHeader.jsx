@@ -13,25 +13,31 @@ function BackIcon() {
   )
 }
 
+// The sticky bar is a sibling of the header so it can stick for the whole page,
+// not just for the height of the header block.
 export function PageHeader({ title, subtitle, backTo, backLabel = 'Atrás', actions }) {
   return (
-    <header className="page-header">
-      {backTo ? (
-        <a className="back-button" href={backTo}>
-          <BackIcon />
-          <span>{backLabel}</span>
-        </a>
-      ) : (
-        <span className="back-button placeholder" />
-      )}
-      <div className="page-header-row">
-        <div>
-          <h1>{title}</h1>
-          {subtitle ? <p className="subtitle">{subtitle}</p> : null}
-        </div>
-        {actions ? <div className="page-header-actions">{actions}</div> : null}
+    <>
+      <div className="back-bar">
+        {backTo ? (
+          <a className="back-button" href={backTo}>
+            <BackIcon />
+            <span>{backLabel}</span>
+          </a>
+        ) : (
+          <span className="back-button placeholder" />
+        )}
       </div>
-    </header>
+      <header className="page-header">
+        <div className="page-header-row">
+          <div>
+            <h1>{title}</h1>
+            {subtitle ? <p className="subtitle">{subtitle}</p> : null}
+          </div>
+          {actions ? <div className="page-header-actions">{actions}</div> : null}
+        </div>
+      </header>
+    </>
   )
 }
 

@@ -69,6 +69,17 @@ export function languageLabel(lang) {
   return 'ES'
 }
 
+const READ_LABELS = {
+  [SPANISH]: { unread: 'Marcar como leído', read: 'Marcado como leído' },
+  [ENGLISH]: { unread: 'Mark as read', read: 'Marked as read' },
+  [KOREAN]: { unread: '읽음으로 표시', read: '읽음으로 표시됨' },
+}
+
+export function readButtonLabel(lang, read) {
+  const labels = READ_LABELS[lang] ?? READ_LABELS[SPANISH]
+  return read ? labels.read : labels.unread
+}
+
 export function nextBookLanguage(lang) {
   const index = BOOK_LANGUAGES.indexOf(lang)
   return BOOK_LANGUAGES[(index + 1) % BOOK_LANGUAGES.length]

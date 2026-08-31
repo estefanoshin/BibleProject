@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { fetchChapters } from '../api'
+import { canonicalBookIdFor } from '../chapterIdentity'
 import { PageHeader, StatusMessage } from '../components/PageHeader.jsx'
-import { isChapterRead, rememberBookChapters } from '../readProgress'
+import { chapterKey, readChapterKeys, rememberBookChapters } from '../readProgress'
 import { navigate } from '../router'
 import { useHorizontalSwipe } from '../useSwipe'
 
 export default function ChaptersPage({ bookId }) {
   const [chapters, setChapters] = useState([])
+  const [canonicalId, setCanonicalId] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -14,11 +16,17 @@ export default function ChaptersPage({ bookId }) {
     let cancelled = false
     setLoading(true)
     setError('')
+    setCanonicalId(null)
     fetchChapters(bookId)
-      .then((data) => {
-        if (!cancelled) {
-          setChapters(data)
-          rememberBookChapters(bookId, data.map((chapter) => chapter.chapterId))
+      .then(async (data) => {
+        if (cancelled) {
+          return
+        }
+        setChapters(data)
+        const canonical = await canonicalBookIdFor(data[0]?.version, bookId)
+        if (!cancelled && canonical) {
+          setCanonicalId(canonical)
+          rememberBookChapters(canonical, data.map((chapter) => chapter.chapterNumber))
         }
       })
       .catch((err) => {
@@ -42,13 +50,15 @@ export default function ChaptersPage({ bookId }) {
 
   useHorizontalSwipe({ onSwipeRight: () => navigate(booksHref) })
 
+  const readKeys = readChapterKeys()
+
   return (
     <section className="page">
       <PageHeader title={bookName} subtitle={version ? `${version} · Capítulos` : 'Capítulos'} backTo={booksHref} backLabel="Libros" />
       <StatusMessage loading={loading} error={error} empty={!loading && !error && chapters.length === 0} />
       <ul className="chapter-grid">
         {chapters.map((chapter) => {
-          const read = isChapterRead(chapter.chapterId)
+          const read = readKeys.has(chapterKey(canonicalId, chapter.chapterNumber))
           return (
             <li key={chapter.chapterId}>
               <a

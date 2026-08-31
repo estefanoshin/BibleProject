@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { fetchBooks } from '../api'
 import {
+  canonicalBookId,
   localizedBookAbbr,
   localizedBookName,
   splitByTestament,
@@ -45,7 +46,7 @@ function BookList({ items, isGrid, lang, readBooks }) {
       {items.map(({ book, index }) => {
         const name = localizedBookName(book, lang, index)
         const abbr = localizedBookAbbr(book, lang, index)
-        const read = readBooks.has(Number(book.bookId))
+        const read = readBooks.has(canonicalBookId(book, index))
         const label = read ? `${name}, leído` : name
         return (
           <li key={book.bookId}>

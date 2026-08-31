@@ -129,6 +129,11 @@ export function catalogEntry(book, index) {
   return null
 }
 
+// Stable id for the same book across versions and languages.
+export function canonicalBookId(book, index) {
+  return catalogEntry(book, index)?.id ?? null
+}
+
 export function localizedBookName(book, lang, index) {
   const entry = catalogEntry(book, index)
   return entry?.[lang]?.name ?? book?.name ?? ''

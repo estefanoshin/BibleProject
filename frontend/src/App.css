@@ -79,13 +79,21 @@
   margin-top: 22px;
 }
 
+.back-bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  margin: -20px -20px 2em;
+  padding: 20px 20px 10px;
+  background: var(--panel);
+}
+
 .back-button {
   display: flex;
   align-items: center;
   gap: 6px;
   width: 100%;
   box-sizing: border-box;
-  margin-bottom: 2em;
   padding: 10px 14px 10px 10px;
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -222,6 +230,11 @@
   background: var(--accent-bg);
 }
 
+.mark-read-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .mark-read-button.marked {
   border-color: #2f8f4e;
   color: #2f8f4e;
@@ -296,4 +309,55 @@
 .chapter-nav a {
   text-decoration: none;
   font-weight: 600;
+}
+
+.version-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  margin: 28px -20px -48px;
+  padding: 10px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--panel);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.version-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.version-tabs {
+  display: flex;
+  gap: 8px;
+  width: max-content;
+  min-width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.version-tab {
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--ui);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.version-tab:hover {
+  background: var(--accent-bg);
+}
+
+.version-tab.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--panel);
 }
