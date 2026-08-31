@@ -139,6 +139,11 @@ export function localizedBookName(book, lang, index) {
   return entry?.[lang]?.name ?? book?.name ?? ''
 }
 
+// For pages that already resolved the canonical id and only have the source name.
+export function bookNameForId(canonicalId, lang, fallbackName = '') {
+  return byId.get(canonicalId)?.[lang]?.name ?? fallbackName
+}
+
 export function localizedBookAbbr(book, lang, index) {
   const entry = catalogEntry(book, index)
   return entry?.[lang]?.abbr ?? fallbackAbbr(localizedBookName(book, lang, index) || book?.name)

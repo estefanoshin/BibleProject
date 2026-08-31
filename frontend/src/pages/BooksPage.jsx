@@ -8,16 +8,13 @@ import {
   testamentLabel,
 } from '../bookCatalog'
 import { PageHeader, StatusMessage } from '../components/PageHeader.jsx'
-import { readBookIds } from '../readProgress'
+import { useReadProgress } from '../readProgress'
 import { navigate } from '../router'
 import { useHorizontalSwipe } from '../useSwipe'
+import { useBookPageLanguage } from '../uiLanguage'
+import { languageToggleAria, readAriaLabel, t } from '../uiStrings'
 import { GRID_VIEW, LIST_VIEW, readBooksView, writeBooksView } from '../viewPreference'
-import {
-  displayVersionName,
-  languageLabel,
-  nextBookLanguage,
-  versionLanguage,
-} from '../versionMeta'
+import { displayVersionName, languageLabel } from '../versionMeta'
 
 function GridIcon() {
   return (
@@ -47,7 +44,7 @@ function BookList({ items, isGrid, lang, readBooks }) {
         const name = localizedBookName(book, lang, index)
         const abbr = localizedBookAbbr(book, lang, index)
         const read = readBooks.has(canonicalBookId(book, index))
-        const label = read ? `${name}, leído` : name
+        const label = readAriaLabel(lang, name, read)
         return (
           <li key={book.bookId}>
             {isGrid ? (
@@ -79,16 +76,15 @@ function BookList({ items, isGrid, lang, readBooks }) {
 export default function BooksPage({ version }) {
   const [books, setBooks] = useState([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [failure, setFailure] = useState(null)
   const [view, setView] = useState(readBooksView)
-  const [langByVersion, setLangByVersion] = useState({})
-  const [readBooks] = useState(readBookIds)
-  const lang = langByVersion[version] ?? versionLanguage(version)
+  const { readBooks } = useReadProgress()
+  const [lang, cycleLanguage] = useBookPageLanguage(version)
 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
-    setError('')
+    setFailure(null)
     fetchBooks(version)
       .then((data) => {
         if (!cancelled) {
@@ -97,7 +93,7 @@ export default function BooksPage({ version }) {
       })
       .catch((err) => {
         if (!cancelled) {
-          setError(err.message || 'No se pudieron cargar los libros.')
+          setFailure(err.message ?? '')
         }
       })
       .finally(() => {
@@ -120,21 +116,16 @@ export default function BooksPage({ version }) {
     writeBooksView(next)
   }
 
-  const toggleLanguage = () => {
-    setLangByVersion((current) => ({
-      ...current,
-      [version]: nextBookLanguage(current[version] ?? versionLanguage(version)),
-    }))
-  }
+  const viewLabel = isGrid ? t(lang, 'listView') : t(lang, 'gridView')
 
   const actions = (
     <>
       <button
         type="button"
         className="lang-toggle"
-        onClick={toggleLanguage}
-        title="Cambiar idioma de los libros"
-        aria-label={`Idioma de los libros: ${languageLabel(lang)}. Cambiar idioma`}
+        onClick={cycleLanguage}
+        title={t(lang, 'changeLanguage')}
+        aria-label={languageToggleAria(lang)}
       >
         {languageLabel(lang)}
       </button>
@@ -142,8 +133,8 @@ export default function BooksPage({ version }) {
         type="button"
         className="view-toggle"
         onClick={toggleView}
-        title={isGrid ? 'Ver lista con nombres completos' : 'Ver cuadrícula con abreviaturas'}
-        aria-label={isGrid ? 'Ver lista con nombres completos' : 'Ver cuadrícula con abreviaturas'}
+        title={viewLabel}
+        aria-label={viewLabel}
         aria-pressed={!isGrid}
       >
         {isGrid ? <ListIcon /> : <GridIcon />}
@@ -152,17 +143,24 @@ export default function BooksPage({ version }) {
   )
 
   const { oldTestament, newTestament } = splitByTestament(books)
+  const error = failure == null ? '' : failure || t(lang, 'booksError')
 
   return (
     <section className="page">
       <PageHeader
         title={displayVersionName(version)}
-        subtitle="Libros"
+        subtitle={t(lang, 'books')}
         backTo="#/"
-        backLabel="Versiones"
+        backLabel={t(lang, 'versions')}
         actions={actions}
+        lang={lang}
       />
-      <StatusMessage loading={loading} error={error} empty={!loading && !error && books.length === 0} />
+      <StatusMessage
+        loading={loading}
+        error={error}
+        empty={!loading && !error && books.length === 0}
+        lang={lang}
+      />
       {oldTestament.length > 0 ? (
         <div className="book-section">
           <h2 className="section-heading">

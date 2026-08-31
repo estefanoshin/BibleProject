@@ -2,10 +2,16 @@
 
 A Spanish Bible reader: a React web app (also packaged with Capacitor for iOS and Android) and a Spring Boot API backed by SQL Server.
 
-You can browse versions, books, and chapters, read verses, and mark chapters as read (stored in the browser). Two translations are included:
+You can browse versions, books, and chapters, read verses, and mark chapters as read (stored in the browser). Bundled CSV translations:
 
 - **Reina-Valera 1960** (`RV-1960`)
 - **Reina-Valera Actualizada 2015** (`RVA-2015`)
+- **Dios Habla Hoy** (`DHH`)
+- **Nueva Versión Internacional** (`NVI`)
+- **Nueva Traducción Viviente** (`NTV`)
+- **King James Version** (`KJV`)
+- **New Living Translation** (`NLT`)
+- **Korean** (`KOERV`, `KLB`)
 
 ## Layout
 
@@ -52,11 +58,24 @@ Start SQL Server 2022 in Docker (host port `1435` by default):
 ./scripts/create_database.sh
 ```
 
-Load translations. **Run RV-1960 first** — that script recreates `books`, `chapters`, and `versicles`. RVA-2015 then inserts alongside it without wiping the other version:
+Load translations. **Run RV-1960 first** — that script recreates `books`, `chapters`, and `versicles`. The other insert scripts load alongside it without wiping existing versions:
 
 ```bash
 ./scripts/insert_rv1960.sh
 ./scripts/insert_rva2015.sh
+./scripts/insert_dhh.sh
+./scripts/insert_nvi.sh
+./scripts/insert_ntv.sh
+./scripts/insert_kjv.sh
+./scripts/insert_nlt.sh
+./scripts/insert_koerv.sh
+./scripts/insert_klb.sh
+```
+
+Or load several folders at once:
+
+```bash
+./scripts/insert_version.sh RVA2015 DHH NVI NTV KJV NLT KOERV KLB
 ```
 
 Verse text is stored gzip-compressed in SQL Server.

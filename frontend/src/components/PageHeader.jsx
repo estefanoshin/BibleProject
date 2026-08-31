@@ -1,3 +1,6 @@
+import { SPANISH } from '../versionMeta'
+import { t } from '../uiStrings'
+
 function BackIcon() {
   return (
     <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
@@ -15,14 +18,14 @@ function BackIcon() {
 
 // The sticky bar is a sibling of the header so it can stick for the whole page,
 // not just for the height of the header block.
-export function PageHeader({ title, subtitle, backTo, backLabel = 'Atrás', actions }) {
+export function PageHeader({ title, subtitle, backTo, backLabel, actions, lang = SPANISH }) {
   return (
     <>
       <div className="back-bar">
         {backTo ? (
           <a className="back-button" href={backTo}>
             <BackIcon />
-            <span>{backLabel}</span>
+            <span>{backLabel ?? t(lang, 'back')}</span>
           </a>
         ) : (
           <span className="back-button placeholder" />
@@ -41,15 +44,15 @@ export function PageHeader({ title, subtitle, backTo, backLabel = 'Atrás', acti
   )
 }
 
-export function StatusMessage({ error, loading, empty }) {
+export function StatusMessage({ error, loading, empty, lang = SPANISH }) {
   if (loading) {
-    return <p className="status">Cargando…</p>
+    return <p className="status">{t(lang, 'loading')}</p>
   }
   if (error) {
     return <p className="status error">{error}</p>
   }
   if (empty) {
-    return <p className="status">No hay contenido para mostrar.</p>
+    return <p className="status">{t(lang, 'empty')}</p>
   }
   return null
 }

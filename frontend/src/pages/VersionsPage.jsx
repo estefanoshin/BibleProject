@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react'
 import { fetchVersions } from '../api'
 import { PageHeader, StatusMessage } from '../components/PageHeader.jsx'
+import { useUiLanguage } from '../uiLanguage'
+import { bookCountLabel, t } from '../uiStrings'
 import { displayVersionName, groupVersions } from '../versionMeta'
 
 export default function VersionsPage() {
   const [versions, setVersions] = useState([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [failure, setFailure] = useState(null)
+  const lang = useUiLanguage()
 
   useEffect(() => {
     let cancelled = false
@@ -18,7 +21,7 @@ export default function VersionsPage() {
       })
       .catch((err) => {
         if (!cancelled) {
-          setError(err.message || 'No se pudieron cargar las versiones.')
+          setFailure(err.message ?? '')
         }
       })
       .finally(() => {
@@ -31,12 +34,22 @@ export default function VersionsPage() {
     }
   }, [])
 
-  const groups = groupVersions(versions)
+  const groups = groupVersions(versions, t(lang, 'otherLanguages'))
+  const error = failure == null ? '' : failure || t(lang, 'versionsError')
 
   return (
     <section className="page">
-      <PageHeader title="Biblia" subtitle="Elige una versión para empezar a leer" />
-      <StatusMessage loading={loading} error={error} empty={!loading && !error && versions.length === 0} />
+      <PageHeader
+        title={t(lang, 'appTitle')}
+        subtitle={t(lang, 'appSubtitle')}
+        lang={lang}
+      />
+      <StatusMessage
+        loading={loading}
+        error={error}
+        empty={!loading && !error && versions.length === 0}
+        lang={lang}
+      />
       {groups.map((group) => (
         <div key={group.id} className="version-group">
           <h2 className="section-heading">
@@ -47,9 +60,7 @@ export default function VersionsPage() {
               <li key={item.version}>
                 <a className="card" href={`#/versions/${encodeURIComponent(item.version)}/books`}>
                   <strong>{displayVersionName(item.version)}</strong>
-                  <span>
-                    {item.bookCount} {item.bookCount === 1 ? 'libro' : 'libros'}
-                  </span>
+                  <span>{bookCountLabel(lang, item.bookCount)}</span>
                 </a>
               </li>
             ))}

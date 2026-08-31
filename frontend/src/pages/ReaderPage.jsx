@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { fetchChapterVerses, fetchVersions } from '../api'
+import { bookNameForId, localizedBookName } from '../bookCatalog'
 import { canonicalBookIdFor, chapterIdInVersion } from '../chapterIdentity'
 import { resolveChapterNeighbors } from '../chapterNavigation'
 import { PageHeader, StatusMessage } from '../components/PageHeader.jsx'
@@ -11,8 +12,10 @@ import {
   takeVerseAnchor,
 } from '../readerScroll'
 import { navigate } from '../router'
+import { useUiLanguage } from '../uiLanguage'
+import { chapterLabel, chapterTitle, readButtonLabel, t } from '../uiStrings'
 import { useHorizontalSwipe } from '../useSwipe'
-import { displayVersionName, groupVersions, readButtonLabel, versionLanguage } from '../versionMeta'
+import { displayVersionName, groupVersions } from '../versionMeta'
 
 const NO_NEIGHBORS = { previous: null, next: null }
 
@@ -20,16 +23,17 @@ export default function ReaderPage({ chapterId }) {
   const [chapter, setChapter] = useState(null)
   const [neighbors, setNeighbors] = useState(NO_NEIGHBORS)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [failure, setFailure] = useState(null)
   const [canonicalId, setCanonicalId] = useState(null)
   const [read, setRead] = useState(false)
   const [versions, setVersions] = useState([])
   const anchorRef = useRef(null)
+  const lang = useUiLanguage(chapter?.version)
 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
-    setError('')
+    setFailure(null)
     setNeighbors(NO_NEIGHBORS)
     setCanonicalId(null)
     setRead(false)
@@ -52,7 +56,7 @@ export default function ReaderPage({ chapterId }) {
       })
       .catch((err) => {
         if (!cancelled) {
-          setError(err.message || 'No se pudo cargar el capítulo.')
+          setFailure(err.message ?? '')
         }
       })
       .finally(() => {
@@ -123,17 +127,24 @@ export default function ReaderPage({ chapterId }) {
   }
 
   const chaptersHref = chapter ? `#/books/${chapter.bookId}/chapters` : '#/'
-  const lang = versionLanguage(chapter?.version)
+  const error = failure == null ? '' : failure || t(lang, 'chapterError')
+  const bookName = bookNameForId(canonicalId, lang, localizedBookName({ name: chapter?.bookName }, lang))
 
   return (
     <section className="page reader">
       <PageHeader
-        title={chapter ? `${chapter.bookName} ${chapter.chapterNumber}` : 'Lectura'}
-        subtitle={chapter?.version}
+        title={chapter ? chapterTitle(lang, bookName, chapter.chapterNumber) : t(lang, 'reading')}
+        subtitle={chapter ? displayVersionName(chapter.version) : null}
         backTo={chaptersHref}
-        backLabel="Capítulos"
+        backLabel={t(lang, 'chapters')}
+        lang={lang}
       />
-      <StatusMessage loading={loading} error={error} empty={!loading && !error && chapter?.verses?.length === 0} />
+      <StatusMessage
+        loading={loading}
+        error={error}
+        empty={!loading && !error && chapter?.verses?.length === 0}
+        lang={lang}
+      />
       {chapter ? (
         <>
           <article className="verses">
@@ -154,17 +165,22 @@ export default function ReaderPage({ chapterId }) {
             {readButtonLabel(lang, read)}
           </button>
           <nav className="chapter-nav">
-            <NeighborLink target={neighbors.previous} direction={-1} />
-            <NeighborLink target={neighbors.next} direction={1} />
+            <NeighborLink target={neighbors.previous} direction={-1} lang={lang} />
+            <NeighborLink target={neighbors.next} direction={1} lang={lang} />
           </nav>
         </>
       ) : null}
-      <VersionBar versions={versions} current={chapter?.version} onSelect={openInVersion} />
+      <VersionBar
+        versions={versions}
+        current={chapter?.version}
+        onSelect={openInVersion}
+        lang={lang}
+      />
     </section>
   )
 }
 
-function VersionBar({ versions, current, onSelect }) {
+function VersionBar({ versions, current, onSelect, lang }) {
   const activeRef = useRef(null)
 
   useEffect(() => {
@@ -175,10 +191,10 @@ function VersionBar({ versions, current, onSelect }) {
     return null
   }
 
-  const ordered = groupVersions(versions).flatMap((group) => group.items)
+  const ordered = groupVersions(versions, t(lang, 'otherLanguages')).flatMap((group) => group.items)
 
   return (
-    <nav className="version-bar" data-swipe-ignore="true" aria-label="Otras versiones">
+    <nav className="version-bar" data-swipe-ignore="true" aria-label={t(lang, 'otherVersions')}>
       <ul className="version-tabs">
         {ordered.map((item) => {
           const active = item.version === current
@@ -201,13 +217,13 @@ function VersionBar({ versions, current, onSelect }) {
   )
 }
 
-function NeighborLink({ target, direction }) {
+function NeighborLink({ target, direction, lang }) {
   if (!target) {
     return <span />
   }
   const label = target.otherBook
-    ? `${target.bookName} ${target.chapterNumber}`
-    : `Capítulo ${target.chapterNumber}`
+    ? chapterTitle(lang, localizedBookName({ name: target.bookName }, lang), target.chapterNumber)
+    : chapterLabel(lang, target.chapterNumber)
   return (
     <a href={`#/chapters/${target.chapterId}`}>
       {direction < 0 ? `‹ ${label}` : `${label} ›`}
