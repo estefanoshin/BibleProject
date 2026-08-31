@@ -30,7 +30,7 @@ You can browse versions, books, and chapters, read verses, and mark chapters as 
 - pnpm (frontend `task start`)
 - Docker
 - Java 21 (or use `BibleAPI/mvnw`, which downloads Maven)
-- For native apps: Xcode (iOS Simulator) and/or Android Studio + SDK (emulator)
+- For native apps: Xcode (iOS Simulator or device IPA) and/or Android Studio + SDK (emulator)
 
 ## First-time setup
 
@@ -119,9 +119,51 @@ task start        # Vite on :3000
 task deploy-api   # Maven package + Docker Compose for BibleAPI
 task ios          # build web app, sync Capacitor, run on iOS Simulator
 task android      # build web app, sync Capacitor, run on Android emulator
+task build:ios-device  # unsigned iPhone IPA → builds/app-device-ipa/app-device.ipa
 ```
 
 `task ios` / `task android` expect Node at `~/.nvm/versions/node/v20.19.2/bin`. Override the Android AVD with `ANDROID_AVD`, or pick an iOS simulator with `IOS_SIMULATOR`.
+
+`task ios` and `task build:ios` produce a **simulator** build. That IPA will not run on a physical iPhone. Use `task build:ios-device` for a real device (see below).
+
+## Install on an iPhone (no App Store)
+
+Apple does not allow a free, tap-to-install IPA like an Android APK. A free Apple ID can still run the app if each person **re-signs** the unsigned device IPA with **their own** Apple ID. The install lasts about **7 days**, then they must re-sign.
+
+### 1. Point the app at a reachable API
+
+`IOS_API_URL` is baked into the IPA at build time. `localhost` is the phone, not your Mac. For a device on the same Wi-Fi, use this machine’s LAN IP, for example:
+
+```bash
+IOS_API_URL=http://192.168.1.20:5010
+```
+
+Set that in `.env`, keep BibleAPI running, and make sure the phone can open that URL. If you use `http://` (not HTTPS), iOS may block the request unless App Transport Security allows that host.
+
+### 2. Build the device IPA
+
+Needs Xcode and its command-line tools.
+
+```bash
+task build:ios-device
+```
+
+Share `builds/app-device-ipa/app-device.ipa`. Do not share `builds/app-debug-ipa/` — that is the simulator package.
+
+### 3. Install with Sideloadly or AltStore
+
+The recipient needs a computer, a USB cable, and a free Apple ID:
+
+1. Install [Sideloadly](https://sideloadly.io/) (Mac or Windows) or [AltStore](https://altstore.io/).
+2. Plug in the iPhone, unlock it, and tap **Trust**.
+3. Open `app-device.ipa`, sign in with **their** Apple ID, and install.
+4. On the iPhone: **Settings → General → VPN & Device Management** → trust the developer certificate.
+
+After about seven days the app will not launch until they install again with the same tool.
+
+### Your own iPhone via Xcode
+
+For a phone you have in hand, USB + Xcode is simpler than Sideloadly: set `IOS_API_URL`, run `npx cap sync ios` from `frontend/`, open `frontend/ios/App/App.xcworkspace`, enable **Automatically manage signing** with your Apple ID, pick the connected iPhone, and Run. The same 7-day free-profile limit applies unless you join the paid Apple Developer Program.
 
 ## Fetching a Bible Gateway version
 
