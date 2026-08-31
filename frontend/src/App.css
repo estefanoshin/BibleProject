@@ -19,24 +19,6 @@
   border: 0;
 }
 
-.page-header {
-  margin-bottom: 24px;
-}
-
-.page-header-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.page-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding-top: 4px;
-}
-
 .view-toggle,
 .lang-toggle,
 .select-toggle {
@@ -117,18 +99,61 @@
   background: var(--panel);
 }
 
-.back-bar-actions {
+/* Equal flex bases on both sides keep the title centered in the bar. */
+.back-bar-side {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* The buttons keep their size; only the back label and title text may shrink. */
+.back-bar-actions {
+  justify-content: flex-end;
+  min-width: max-content;
+}
+
+/* The bar can hold up to four toggles, so they stay a bit tighter here. */
+.back-bar-actions .view-toggle,
+.back-bar-actions .lang-toggle,
+.back-bar-actions .select-toggle {
+  width: 36px;
+  height: 36px;
+}
+
+.back-bar-actions > * {
   flex-shrink: 0;
+}
+
+.back-bar-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  text-align: center;
+}
+
+.back-bar-title h1 {
+  font-size: 1.2rem;
+  letter-spacing: -0.01em;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.back-bar-title .subtitle {
+  margin: 1px 0 0;
+  font-family: var(--ui);
+  font-size: 0.72rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .back-button {
   display: flex;
   align-items: center;
   gap: 6px;
-  flex: 1;
+  flex: 0 1 auto;
   min-width: 0;
   width: auto;
   box-sizing: border-box;
@@ -138,25 +163,27 @@
   background: var(--bg);
   box-shadow: var(--shadow);
   color: var(--accent);
+  font: inherit;
   font-size: 0.9rem;
   font-weight: 600;
   text-decoration: none;
+  cursor: pointer;
 }
 
 .back-button svg {
   width: 16px;
   height: 16px;
+  flex-shrink: 0;
+}
+
+.back-button span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .back-button:hover {
   background: var(--accent-bg);
-}
-
-.back-button.placeholder {
-  min-height: 1.3em;
-  border: 0;
-  background: none;
-  box-shadow: none;
 }
 
 .subtitle {
@@ -232,7 +259,9 @@
   font-weight: 600;
 }
 
-button.chapter-tile {
+button.chapter-tile,
+button.book-tile,
+button.card {
   width: 100%;
   margin: 0;
   padding: 0;
@@ -242,18 +271,30 @@ button.chapter-tile {
   cursor: pointer;
 }
 
+button.card {
+  padding: 16px 18px;
+  text-align: left;
+}
+
+button.book-tile {
+  padding: 0 6px;
+}
+
 .book-tile {
   padding: 0 6px;
   text-align: center;
   white-space: nowrap;
 }
 
-.select-toggle[aria-pressed='true'] {
+.select-toggle[aria-pressed='true'],
+.select-toggle[aria-current='page'] {
   background: var(--accent-bg);
   border-color: var(--accent);
 }
 
-.chapter-tile.selected {
+.chapter-tile.selected,
+.book-tile.selected,
+.card.selected {
   box-shadow: 0 0 0 2px var(--accent);
 }
 
@@ -351,6 +392,16 @@ button.chapter-tile {
   padding: 10px 20px calc(10px + env(safe-area-inset-bottom));
   border-top: 1px solid var(--border);
   background: var(--panel);
+}
+
+.books-page .chapter-select-bar {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 21;
+  width: min(720px, 100%);
+  margin: 0 auto;
 }
 
 .chapter-select-bar .mark-read-button {
@@ -483,6 +534,12 @@ button.chapter-tile {
   outline-offset: 2px;
 }
 
+.verse.saved {
+  text-decoration: underline dotted var(--accent);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 0.18em;
+}
+
 .verse.selected {
   background: var(--accent-bg);
   box-shadow: inset 3px 0 var(--accent);
@@ -492,8 +549,17 @@ button.chapter-tile {
   display: inline-flex;
   align-items: center;
   margin-left: 0.35em;
+  padding: 0;
+  border: 0;
+  background: none;
   color: var(--accent);
   vertical-align: middle;
+  cursor: pointer;
+}
+
+.verse-note-mark:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .verse-note-mark svg {
@@ -701,24 +767,78 @@ button.chapter-tile {
 
 .note-dialog-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.note-dialog-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.note-dialog-icon-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.note-dialog-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text-h);
+  cursor: pointer;
+}
+
+.note-dialog-icon-btn:hover {
+  background: var(--accent-bg);
+}
+
+.note-dialog-icon-btn.danger {
+  color: #9b2c2c;
+}
+
+.note-dialog-icon-btn.danger:hover {
+  background: #fde8e8;
+}
+
+@media (prefers-color-scheme: dark) {
+  .note-dialog-icon-btn.danger:hover {
+    background: #3a1f1f;
+  }
+}
+
+.note-dialog-icon-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.note-dialog-header-actions .note-dialog-close {
+  margin: 0;
 }
 
 .note-dialog-close {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  margin: -6px -6px 0 0;
+  width: 32px;
+  height: 32px;
+  margin: -2px -2px 0 0;
   padding: 0;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 8px;
   background: var(--bg);
   color: var(--text-h);
-  font-size: 1.4rem;
+  font-size: 1.25rem;
   line-height: 1;
   cursor: pointer;
 }
@@ -737,6 +857,77 @@ button.chapter-tile {
   color: var(--muted);
   font-family: var(--ui);
   font-size: 0.82rem;
+}
+
+.note-dialog-read {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: min(50vh, 360px);
+  overflow: auto;
+}
+
+.note-dialog-entry {
+  margin: 0;
+}
+
+/* The note text is a button so a tap copies it, but its text stays selectable. */
+.note-dialog .note-dialog-entry-text {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  appearance: none;
+  background: none;
+  white-space: pre-wrap;
+  text-align: left;
+  color: var(--text-h);
+  font-family: inherit;
+  font-size: 1rem;
+  line-height: 1.45;
+  cursor: pointer;
+  user-select: text;
+  -webkit-user-select: text;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.note-dialog .note-dialog-entry-text:hover {
+  background: var(--accent-bg);
+}
+
+.note-dialog .note-dialog-entry-text:active {
+  background: var(--accent-bg);
+  box-shadow: inset 3px 0 var(--accent);
+}
+
+.note-dialog .note-dialog-entry-text:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.note-dialog .note-dialog-status {
+  margin: 10px 0 0;
+  color: var(--accent);
+  font-family: var(--ui);
+  font-size: 0.78rem;
+}
+
+.note-dialog-entry-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.note-dialog-entry-meta {
+  display: block;
+  color: var(--muted);
+  font-family: var(--ui);
+  font-size: 0.78rem;
 }
 
 .note-dialog textarea {
@@ -806,9 +997,14 @@ button.chapter-tile {
   font: inherit;
   text-align: left;
   cursor: pointer;
+  /* The card is a button, so selection has to be turned back on for its text.
+     The native long-press callout is dropped because holding copies instead. */
+  user-select: text;
+  -webkit-user-select: text;
+  -webkit-touch-callout: none;
 }
 
-.saved-delete {
+.saved-action {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -819,8 +1015,19 @@ button.chapter-tile {
   border-radius: 12px;
   background: var(--bg);
   box-shadow: var(--shadow);
-  color: #9b2c2c;
   cursor: pointer;
+}
+
+.saved-copy {
+  color: var(--accent);
+}
+
+.saved-copy:hover {
+  background: var(--accent-bg);
+}
+
+.saved-delete {
+  color: #9b2c2c;
 }
 
 .saved-delete:hover {
@@ -833,9 +1040,26 @@ button.chapter-tile {
   }
 }
 
-.saved-delete svg {
+.saved-action svg {
   width: 18px;
   height: 18px;
+}
+
+.saved-toast {
+  position: fixed;
+  left: 50%;
+  bottom: max(16px, calc(16px + env(safe-area-inset-bottom, 0px)));
+  z-index: 40;
+  margin: 0;
+  padding: 8px 16px;
+  transform: translateX(-50%);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.22);
+  color: var(--accent);
+  font-family: var(--ui);
+  font-size: 0.8rem;
 }
 
 .saved-card span {

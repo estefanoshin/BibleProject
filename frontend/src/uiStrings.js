@@ -18,6 +18,7 @@ const STRINGS = {
     markSelectedRead: 'Marcar como leídos',
     markSelectedUnread: 'Marcar como no leídos',
     selectChapters: 'Seleccionar capítulos',
+    selectBooks: 'Seleccionar libros',
     selectAll: 'Seleccionar todos',
     selectedSuffix: 'seleccionado',
     readSuffix: 'leído',
@@ -43,6 +44,7 @@ const STRINGS = {
     savePassage: 'Guardar',
     sharePassage: 'Compartir',
     passageCopied: 'Pasaje copiado',
+    copyError: 'No se pudo copiar',
     passageSaved: 'Pasaje guardado',
     passageSaveError: 'No se pudo guardar',
     shareFallback: 'No se pudo compartir; pasaje copiado',
@@ -51,11 +53,16 @@ const STRINGS = {
     cancel: 'Cancelar',
     saveNote: 'Guardar nota',
     noteSaved: 'Nota guardada',
+    noteCopied: 'Nota copiada',
     noteSingleVerse: 'Las notas son de un solo versículo',
     close: 'Cerrar',
     savedNotes: 'Notas guardadas',
     savedPassages: 'Pasajes guardados',
     verseHasNote: 'Este versículo tiene notas',
+    viewNote: 'Nota',
+    edit: 'Editar',
+    editNote: 'Editar nota',
+    noteDeleted: 'Nota eliminada',
     delete: 'Eliminar',
     deleteConfirm: 'Esta acción no se puede deshacer.',
     deleteNoteConfirmTitle: '¿Eliminar esta nota?',
@@ -78,6 +85,7 @@ const STRINGS = {
     markSelectedRead: 'Mark as read',
     markSelectedUnread: 'Mark as unread',
     selectChapters: 'Select chapters',
+    selectBooks: 'Select books',
     selectAll: 'Select all',
     selectedSuffix: 'selected',
     readSuffix: 'read',
@@ -103,6 +111,7 @@ const STRINGS = {
     savePassage: 'Save',
     sharePassage: 'Share',
     passageCopied: 'Passage copied',
+    copyError: 'Could not copy',
     passageSaved: 'Passage saved',
     passageSaveError: 'Could not save',
     shareFallback: 'Sharing unavailable; passage copied',
@@ -111,11 +120,16 @@ const STRINGS = {
     cancel: 'Cancel',
     saveNote: 'Save note',
     noteSaved: 'Note saved',
+    noteCopied: 'Note copied',
     noteSingleVerse: 'Notes are for one verse at a time',
     close: 'Close',
     savedNotes: 'Saved notes',
     savedPassages: 'Saved passages',
     verseHasNote: 'This verse has notes',
+    viewNote: 'Note',
+    edit: 'Edit',
+    editNote: 'Edit note',
+    noteDeleted: 'Note deleted',
     delete: 'Delete',
     deleteConfirm: 'This cannot be undone.',
     deleteNoteConfirmTitle: 'Delete this note?',
@@ -138,6 +152,7 @@ const STRINGS = {
     markSelectedRead: '읽음으로 표시',
     markSelectedUnread: '읽지 않음으로 표시',
     selectChapters: '장 선택',
+    selectBooks: '성경 선택',
     selectAll: '모두 선택',
     selectedSuffix: '선택됨',
     readSuffix: '읽음',
@@ -163,6 +178,7 @@ const STRINGS = {
     savePassage: '저장',
     sharePassage: '공유',
     passageCopied: '구절을 복사했습니다',
+    copyError: '복사하지 못했습니다',
     passageSaved: '구절을 저장했습니다',
     passageSaveError: '저장하지 못했습니다',
     shareFallback: '공유할 수 없어 구절을 복사했습니다',
@@ -171,11 +187,16 @@ const STRINGS = {
     cancel: '취소',
     saveNote: '메모 저장',
     noteSaved: '메모를 저장했습니다',
+    noteCopied: '메모를 복사했습니다',
     noteSingleVerse: '메모는 한 절씩만 저장할 수 있습니다',
     close: '닫기',
     savedNotes: '저장한 메모',
     savedPassages: '저장한 구절',
     verseHasNote: '이 절에 메모가 있습니다',
+    viewNote: '메모',
+    edit: '편집',
+    editNote: '메모 수정',
+    noteDeleted: '메모를 삭제했습니다',
     delete: '삭제',
     deleteConfirm: '이 작업은 되돌릴 수 없습니다.',
     deleteNoteConfirmTitle: '이 메모를 삭제할까요?',
@@ -223,13 +244,13 @@ export function readButtonLabel(lang, read) {
   return t(lang, read ? 'markedRead' : 'markRead')
 }
 
-export function markSelectedLabel(lang, count, unread = false) {
+export function markSelectedLabel(lang, count, unread = false, unit = 'chapter') {
   const base = t(lang, unread ? 'markSelectedUnread' : 'markSelectedRead')
   if (!count) {
     return base
   }
   if (lang === KOREAN) {
-    return `${count}장 ${base}`
+    return `${count}${unit === 'book' ? '권' : '장'} ${base}`
   }
   return `${base} (${count})`
 }

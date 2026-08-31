@@ -1,4 +1,5 @@
 import { SPANISH } from '../versionMeta'
+import { goBack, useRoute } from '../router'
 import { t } from '../uiStrings'
 
 function BackIcon() {
@@ -33,40 +34,61 @@ function BookmarkIcon() {
   )
 }
 
-// The sticky bar is a sibling of the header so it can stick for the whole page,
-// not just for the height of the header block.
-export function PageHeader({ title, subtitle, backTo, backLabel, actions, barActions, lang = SPANISH }) {
+// The bar sticks for the whole page, so the title travels with it instead of
+// living in a separate header block.
+export function PageHeader({ title, subtitle, backTo, backLabel, onBack, barActions, lang = SPANISH }) {
+  const route = useRoute()
+
+  function handleLibrary(event, name) {
+    if (route.name === name) {
+      event.preventDefault()
+      goBack()
+    }
+  }
+
   return (
-    <>
-      <div className="back-bar">
-        {backTo ? (
+    <header className="back-bar">
+      <div className="back-bar-side">
+        {onBack ? (
+          <button type="button" className="back-button" onClick={onBack}>
+            <BackIcon />
+            <span>{backLabel ?? t(lang, 'back')}</span>
+          </button>
+        ) : backTo ? (
           <a className="back-button" href={backTo}>
             <BackIcon />
             <span>{backLabel ?? t(lang, 'back')}</span>
           </a>
-        ) : (
-          <span className="back-button placeholder" />
-        )}
-        <div className="back-bar-actions">
-          <a className="select-toggle" href="#/notes" title={t(lang, 'savedNotes')} aria-label={t(lang, 'savedNotes')}>
-            <NotesIcon />
-          </a>
-          <a className="select-toggle" href="#/saved" title={t(lang, 'savedPassages')} aria-label={t(lang, 'savedPassages')}>
-            <BookmarkIcon />
-          </a>
-          {barActions}
-        </div>
+        ) : null}
       </div>
-      <header className="page-header">
-        <div className="page-header-row">
-          <div>
-            <h1>{title}</h1>
-            {subtitle ? <p className="subtitle">{subtitle}</p> : null}
-          </div>
-          {actions ? <div className="page-header-actions">{actions}</div> : null}
-        </div>
-      </header>
-    </>
+      <div className="back-bar-title">
+        <h1>{title}</h1>
+        {subtitle ? <p className="subtitle">{subtitle}</p> : null}
+      </div>
+      <div className="back-bar-side back-bar-actions">
+        {barActions}
+        <a
+          className="select-toggle"
+          href="#/notes"
+          title={t(lang, 'savedNotes')}
+          aria-label={t(lang, 'savedNotes')}
+          aria-current={route.name === 'notes' ? 'page' : undefined}
+          onClick={(event) => handleLibrary(event, 'notes')}
+        >
+          <NotesIcon />
+        </a>
+        <a
+          className="select-toggle"
+          href="#/saved"
+          title={t(lang, 'savedPassages')}
+          aria-label={t(lang, 'savedPassages')}
+          aria-current={route.name === 'saved' ? 'page' : undefined}
+          onClick={(event) => handleLibrary(event, 'saved')}
+        >
+          <BookmarkIcon />
+        </a>
+      </div>
+    </header>
   )
 }
 

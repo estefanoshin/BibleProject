@@ -108,6 +108,26 @@ export function saveVerseNote(passage, note) {
   return true
 }
 
+export function updatePassageNote(id, note) {
+  const text = note.trim()
+  if (!id || !text) {
+    return false
+  }
+  let found = false
+  passageNotes = passageNotes.map((entry) => {
+    if (entry.id !== id) {
+      return entry
+    }
+    found = true
+    return { ...entry, note: text, savedAt: new Date().toISOString() }
+  })
+  if (!found) {
+    return false
+  }
+  persist()
+  return true
+}
+
 export function deleteSavedPassage(id) {
   const next = savedPassages.filter((entry) => entry.id !== id)
   if (next.length === savedPassages.length) {

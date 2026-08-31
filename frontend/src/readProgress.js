@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { canonicalChapterNumbers } from './bookCatalog'
 import { hydrateDurable, persistDurable } from './durableAccount'
 
 // Progress is stored per canonical book + chapter number, so marking a chapter read
@@ -153,8 +154,51 @@ export function setChaptersRead(keys, read) {
   }
 }
 
-// A book can only be judged complete once its chapter list has been seen at least once,
-// so the chapters page records the numbers it loads.
+function chapterNumbersForBook(canonicalBookId) {
+  const remembered = bookChapters[canonicalBookId]
+  if (Array.isArray(remembered) && remembered.length > 0) {
+    return remembered
+  }
+  return canonicalChapterNumbers(canonicalBookId)
+}
+
+export function setBooksRead(canonicalIds, read) {
+  const keys = []
+  let nextBooks = bookChapters
+  let remembered = false
+  for (const id of canonicalIds) {
+    const book = Number(id)
+    if (!Number.isFinite(book)) {
+      continue
+    }
+    const numbers = chapterNumbersForBook(book)
+    if (numbers.length === 0) {
+      continue
+    }
+    if (nextBooks[book] !== numbers) {
+      if (nextBooks === bookChapters) {
+        nextBooks = { ...bookChapters }
+      }
+      nextBooks[book] = numbers
+      remembered = true
+    }
+    for (const number of numbers) {
+      const key = chapterKey(book, number)
+      if (key) {
+        keys.push(key)
+      }
+    }
+  }
+  if (remembered) {
+    bookChapters = nextBooks
+  }
+  const before = chapterKeys.size
+  setChaptersRead(keys, read)
+  if (remembered && chapterKeys.size === before) {
+    persist()
+  }
+}
+
 export function rememberBookChapters(canonicalBookId, chapterNumbers) {
   const book = Number(canonicalBookId)
   const numbers = chapterNumbers.map(Number).filter(Number.isFinite)

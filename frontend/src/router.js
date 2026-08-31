@@ -30,6 +30,14 @@ export function navigate(to) {
   window.location.hash = to.startsWith('#') ? to : `#${to}`
 }
 
+export function goBack(fallback = '/') {
+  if (window.history.length > 1) {
+    window.history.back()
+    return
+  }
+  navigate(fallback)
+}
+
 export function useRoute() {
   const [route, setRoute] = useState(parseHash)
 

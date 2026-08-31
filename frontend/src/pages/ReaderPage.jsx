@@ -3,9 +3,17 @@ import { fetchChapterVerses, fetchVersions } from '../api'
 import { bookNameForId, localizedBookName } from '../bookCatalog'
 import { canonicalBookIdFor, chapterIdInVersion } from '../chapterIdentity'
 import { resolveChapterNeighbors } from '../chapterNavigation'
+import { copyText, hasTextSelection } from '../clipboard'
 import { PageHeader, StatusMessage } from '../components/PageHeader.jsx'
 import { chapterKey, isChapterRead, setChapterRead } from '../readProgress'
-import { savePassage, saveVerseNote, usePassageStorage, verseNoteKey } from '../passageStorage'
+import {
+  deletePassageNote,
+  savePassage,
+  saveVerseNote,
+  updatePassageNote,
+  usePassageStorage,
+  verseNoteKey,
+} from '../passageStorage'
 import {
   currentVerseAnchor,
   rememberVerseAnchor,
@@ -88,18 +96,35 @@ export default function ReaderPage({ chapterId }) {
   const [selectedVerseIds, setSelectedVerseIds] = useState(() => new Set())
   const [noteOpen, setNoteOpen] = useState(false)
   const [note, setNote] = useState('')
+  const [viewingKey, setViewingKey] = useState(null)
   const [actionMessage, setActionMessage] = useState('')
   const [query, setQuery] = useState('')
   const [matchIndex, setMatchIndex] = useState(0)
   const anchorRef = useRef(null)
   const lang = useUiLanguage(chapter?.version)
-  const { passageNotes } = usePassageStorage()
+  const { passageNotes, savedPassages } = usePassageStorage()
   const notedVerseKeys = new Set(
     passageNotes.flatMap((item) => {
       const verse = item.verses?.[0]
       return verse ? [verseNoteKey(item.canonicalBookId, item.chapterNumber, verse.verseNumber)] : []
     }),
   )
+  const savedVerseKeys = new Set(
+    savedPassages.flatMap((item) =>
+      (item.verses ?? []).map((verse) =>
+        verseNoteKey(item.canonicalBookId, item.chapterNumber, verse.verseNumber),
+      ),
+    ),
+  )
+  const viewingNotes = viewingKey
+    ? passageNotes.filter((item) => {
+        const noted = item.verses?.[0]
+        return (
+          noted &&
+          verseNoteKey(item.canonicalBookId, item.chapterNumber, noted.verseNumber) === viewingKey
+        )
+      })
+    : []
   const selectedVerses =
     chapter?.verses?.filter((verse) => selectedVerseIds.has(String(verse.verseId))) ?? []
 
@@ -112,8 +137,14 @@ export default function ReaderPage({ chapterId }) {
     setRead(false)
     setSelectedVerseIds(new Set())
     setNoteOpen(false)
+    setViewingKey(null)
     setActionMessage('')
-    anchorRef.current = takeVerseAnchor()
+    // Strict mode runs this effect twice, so only overwrite the anchor when a
+    // fresh one is pending; the second run would otherwise clear it.
+    const pendingAnchor = takeVerseAnchor()
+    if (pendingAnchor != null) {
+      anchorRef.current = pendingAnchor
+    }
     fetchChapterVerses(chapterId)
       .then(async (data) => {
         if (cancelled) {
@@ -254,25 +285,32 @@ export default function ReaderPage({ chapterId }) {
   }
 
   async function copySelection(messageKey = 'passageCopied') {
-    const text = passageText()
-    try {
-      await navigator.clipboard.writeText(text)
-    } catch {
-      const input = document.createElement('textarea')
-      input.value = text
-      input.style.position = 'fixed'
-      input.style.opacity = '0'
-      document.body.appendChild(input)
-      input.select()
-      document.execCommand('copy')
-      input.remove()
-    }
-    setActionMessage(t(lang, messageKey))
+    const copied = await copyText(passageText())
+    setActionMessage(t(lang, copied ? messageKey : 'copyError'))
   }
 
   function saveSelection() {
     const saved = savePassage(selectedPassage())
-    setActionMessage(t(lang, saved ? 'passageSaved' : 'passageSaveError'))
+    if (saved) {
+      clearSelection()
+      return
+    }
+    setActionMessage(t(lang, 'passageSaveError'))
+  }
+
+  function openVerseNotes(event, verse) {
+    event.stopPropagation()
+    event.preventDefault()
+    const key = verseNoteKey(canonicalId, chapter.chapterNumber, verse.verseNumber)
+    const hasNotes = passageNotes.some((item) => {
+      const noted = item.verses?.[0]
+      return noted && verseNoteKey(item.canonicalBookId, item.chapterNumber, noted.verseNumber) === key
+    })
+    if (!hasNotes) {
+      return
+    }
+    setNoteOpen(false)
+    setViewingKey(key)
   }
 
   function saveNote() {
@@ -281,10 +319,26 @@ export default function ReaderPage({ chapterId }) {
     }
     const saved = saveVerseNote(selectedPassage(), note)
     if (saved) {
-      setNote('')
-      setNoteOpen(false)
+      clearSelection()
+      return
     }
+    setActionMessage(t(lang, 'passageSaveError'))
+  }
+
+  function saveViewedNote(item, text) {
+    const saved = updatePassageNote(item.id, text)
     setActionMessage(t(lang, saved ? 'noteSaved' : 'passageSaveError'))
+    return saved
+  }
+
+  function deleteViewedNote(item) {
+    const lastNote = viewingNotes.length <= 1
+    const deleted = deletePassageNote(item.id)
+    if (deleted && lastNote) {
+      setViewingKey(null)
+    }
+    setActionMessage(t(lang, deleted ? 'noteDeleted' : 'passageSaveError'))
+    return deleted
   }
 
   async function shareSelection() {
@@ -369,9 +423,9 @@ export default function ReaderPage({ chapterId }) {
           <article className="verses">
             {chapter.verses.map((verse) => {
               const selected = selectedVerseIds.has(String(verse.verseId))
-              const hasNote = notedVerseKeys.has(
-                verseNoteKey(canonicalId, chapter.chapterNumber, verse.verseNumber),
-              )
+              const noteKey = verseNoteKey(canonicalId, chapter.chapterNumber, verse.verseNumber)
+              const hasNote = notedVerseKeys.has(noteKey)
+              const saved = savedVerseKeys.has(noteKey)
               const ranges = verseHits.get(String(verse.verseId)) ?? []
               const currentRange =
                 activeMatch?.verseId === String(verse.verseId) ? activeMatch.rangeIndex : -1
@@ -379,12 +433,22 @@ export default function ReaderPage({ chapterId }) {
               <p
                 key={verse.verseId}
                 data-verse={verse.verseNumber}
-                className={selected ? 'verse selected' : 'verse'}
+                className={['verse', saved ? 'saved' : '', selected ? 'selected' : '']
+                  .filter(Boolean)
+                  .join(' ')}
                 role="button"
                 tabIndex="0"
                 aria-pressed={selected}
-                onClick={() => toggleVerse(verse.verseId)}
+                onClick={(event) => {
+                  if (event.target.closest('.verse-note-mark')) {
+                    return
+                  }
+                  toggleVerse(verse.verseId)
+                }}
                 onKeyDown={(event) => {
+                  if (event.target.closest('.verse-note-mark')) {
+                    return
+                  }
                   if (event.key === 'Enter' || event.key === ' ') {
                     event.preventDefault()
                     toggleVerse(verse.verseId)
@@ -394,9 +458,15 @@ export default function ReaderPage({ chapterId }) {
                 <sup>{verse.verseNumber}</sup>
                 <HighlightedText text={verse.text} ranges={ranges} currentRange={currentRange} />
                 {hasNote ? (
-                  <span className="verse-note-mark" title={t(lang, 'verseHasNote')} aria-label={t(lang, 'verseHasNote')}>
+                  <button
+                    type="button"
+                    className="verse-note-mark"
+                    title={t(lang, 'verseHasNote')}
+                    aria-label={t(lang, 'verseHasNote')}
+                    onClick={(event) => openVerseNotes(event, verse)}
+                  >
                     <ActionIcon name="note" />
-                  </span>
+                  </button>
                 ) : null}
               </p>
               )
@@ -426,6 +496,7 @@ export default function ReaderPage({ chapterId }) {
           onCopy={copySelection}
           onNote={() => {
             if (selectedVerses.length === 1) {
+              setViewingKey(null)
               setNoteOpen(true)
             } else {
               setActionMessage(t(lang, 'noteSingleVerse'))
@@ -456,12 +527,22 @@ export default function ReaderPage({ chapterId }) {
       )}
       {noteOpen ? (
         <NoteDialog
+          title={t(lang, 'addNote')}
           reference={selectedPassage().reference}
           note={note}
           lang={lang}
           onChange={setNote}
           onCancel={() => setNoteOpen(false)}
           onSave={saveNote}
+        />
+      ) : null}
+      {viewingNotes.length ? (
+        <ViewNoteDialog
+          notes={viewingNotes}
+          lang={lang}
+          onClose={() => setViewingKey(null)}
+          onSave={saveViewedNote}
+          onDelete={deleteViewedNote}
         />
       ) : null}
     </section>
@@ -585,7 +666,222 @@ function PassageActionBar({
   )
 }
 
-function NoteDialog({ reference, note, lang, onChange, onCancel, onSave }) {
+function formatSavedAt(value, lang) {
+  try {
+    return new Date(value).toLocaleString(lang)
+  } catch {
+    return value
+  }
+}
+
+function EditIcon() {
+  return (
+    <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+      <path
+        d="M4 14.7V16.5h1.8L14.2 8.1 12.4 6.3 4 14.7zM13.1 5.6l1.8 1.8 1.1-1.1a1 1 0 0 0 0-1.4l-.4-.4a1 1 0 0 0-1.4 0z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+function TrashIcon() {
+  return (
+    <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+      <path
+        d="M4.5 6.5h11M8 6.5V4.8h4v1.7M6.2 6.5l.6 9.2h6.4l.6-9.2"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+function NoteIconButtons({ lang, onEdit, onDelete }) {
+  return (
+    <div className="note-dialog-icon-actions">
+      <button
+        type="button"
+        className="note-dialog-icon-btn"
+        title={t(lang, 'edit')}
+        aria-label={t(lang, 'edit')}
+        onClick={onEdit}
+      >
+        <EditIcon />
+      </button>
+      <button
+        type="button"
+        className="note-dialog-icon-btn danger"
+        title={t(lang, 'delete')}
+        aria-label={t(lang, 'delete')}
+        onClick={onDelete}
+      >
+        <TrashIcon />
+      </button>
+    </div>
+  )
+}
+
+function ViewNoteDialog({ notes, lang, onClose, onSave, onDelete }) {
+  const [editing, setEditing] = useState(null)
+  const [draft, setDraft] = useState('')
+  const [pendingDelete, setPendingDelete] = useState(null)
+  const [copyMessage, setCopyMessage] = useState('')
+  const first = notes[0]
+
+  useEffect(() => {
+    if (!copyMessage) {
+      return undefined
+    }
+    const timeout = window.setTimeout(() => setCopyMessage(''), 2200)
+    return () => window.clearTimeout(timeout)
+  }, [copyMessage])
+
+  function beginEdit(item) {
+    setPendingDelete(null)
+    setEditing(item)
+    setDraft(item.note)
+  }
+
+  async function copyNote(item) {
+    if (hasTextSelection()) {
+      return
+    }
+    const text = `${item.reference} (${displayVersionName(item.version)})\n${item.note}`
+    const copied = await copyText(text)
+    setCopyMessage(t(lang, copied ? 'noteCopied' : 'copyError'))
+  }
+
+  if (editing) {
+    return (
+      <NoteDialog
+        title={t(lang, 'editNote')}
+        reference={editing.reference}
+        note={draft}
+        lang={lang}
+        onChange={setDraft}
+        onCancel={() => setEditing(null)}
+        onSave={() => {
+          if (onSave(editing, draft)) {
+            setEditing(null)
+          }
+        }}
+      />
+    )
+  }
+
+  if (pendingDelete) {
+    return (
+      <div className="note-dialog-backdrop" role="presentation" onMouseDown={() => setPendingDelete(null)}>
+        <section
+          className="note-dialog"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-note-dialog-title"
+          onMouseDown={(event) => event.stopPropagation()}
+        >
+          <div className="note-dialog-header">
+            <h2 id="delete-note-dialog-title">{t(lang, 'deleteNoteConfirmTitle')}</h2>
+            <button
+              type="button"
+              className="note-dialog-close"
+              onClick={() => setPendingDelete(null)}
+              title={t(lang, 'close')}
+              aria-label={t(lang, 'close')}
+            >
+              ×
+            </button>
+          </div>
+          <p>{pendingDelete.reference}</p>
+          <p>{t(lang, 'deleteConfirm')}</p>
+          <div className="note-dialog-actions">
+            <button type="button" onClick={() => setPendingDelete(null)}>{t(lang, 'cancel')}</button>
+            <button
+              type="button"
+              className="danger"
+              onClick={() => {
+                onDelete(pendingDelete)
+                setPendingDelete(null)
+              }}
+            >
+              {t(lang, 'delete')}
+            </button>
+          </div>
+        </section>
+      </div>
+    )
+  }
+
+  return (
+    <div className="note-dialog-backdrop" role="presentation" onMouseDown={onClose}>
+      <section
+        className="note-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="view-note-dialog-title"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <div className="note-dialog-header">
+          <h2 id="view-note-dialog-title">{t(lang, 'viewNote')}</h2>
+          <button
+            type="button"
+            className="note-dialog-close"
+            onClick={onClose}
+            title={t(lang, 'close')}
+            aria-label={t(lang, 'close')}
+          >
+            ×
+          </button>
+        </div>
+        <p>{first.reference}</p>
+        <div className="note-dialog-read">
+          {notes.map((item) => (
+            <div key={item.id} className="note-dialog-entry">
+              <div className="note-dialog-entry-toolbar">
+                <span className="note-dialog-entry-meta">
+                  {displayVersionName(item.version)}
+                  {item.savedAt ? ` · ${formatSavedAt(item.savedAt, lang)}` : ''}
+                </span>
+                <NoteIconButtons
+                  lang={lang}
+                  onEdit={() => beginEdit(item)}
+                  onDelete={() => setPendingDelete(item)}
+                />
+              </div>
+              <button
+                type="button"
+                className="note-dialog-entry-text"
+                title={t(lang, 'copyPassage')}
+                onClick={() => copyNote(item)}
+              >
+                {item.note}
+              </button>
+            </div>
+          ))}
+        </div>
+        {copyMessage ? (
+          <p className="note-dialog-status" role="status">
+            {copyMessage}
+          </p>
+        ) : null}
+        <div className="note-dialog-actions">
+          <button type="button" className="primary" onClick={onClose}>
+            {t(lang, 'close')}
+          </button>
+        </div>
+      </section>
+    </div>
+  )
+}
+
+function NoteDialog({ title, reference, note, lang, onChange, onCancel, onSave }) {
   return (
     <div className="note-dialog-backdrop" role="presentation" onMouseDown={onCancel}>
       <section
@@ -596,7 +892,7 @@ function NoteDialog({ reference, note, lang, onChange, onCancel, onSave }) {
         onMouseDown={(event) => event.stopPropagation()}
       >
         <div className="note-dialog-header">
-          <h2 id="note-dialog-title">{t(lang, 'addNote')}</h2>
+          <h2 id="note-dialog-title">{title}</h2>
           <button
             type="button"
             className="note-dialog-close"
