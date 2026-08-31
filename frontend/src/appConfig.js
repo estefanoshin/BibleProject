@@ -1,4 +1,4 @@
-const VERSION_DIRS = ['RV1960', 'RVA2015']
+const VERSION_DIRS = ['RV1960', 'RVA2015', 'DHH', 'NVI', 'KOERV']
 
 function publicUrl(relativePath) {
   return new URL(relativePath, document.baseURI).href

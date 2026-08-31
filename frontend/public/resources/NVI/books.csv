@@ -1,0 +1,67 @@
+book_id,name,version
+1,Génesis,NVI
+2,Éxodo,NVI
+3,Levítico,NVI
+4,Números,NVI
+5,Deuteronomio,NVI
+6,Josué,NVI
+7,Jueces,NVI
+8,Rut,NVI
+9,1 Samuel,NVI
+10,2 Samuel,NVI
+11,1 Reyes,NVI
+12,2 Reyes,NVI
+13,1 Crónicas,NVI
+14,2 Crónicas,NVI
+15,Esdras,NVI
+16,Nehemías,NVI
+17,Ester,NVI
+18,Job,NVI
+19,Salmos,NVI
+20,Proverbios,NVI
+21,Eclesiastés,NVI
+22,Cantares,NVI
+23,Isaías,NVI
+24,Jeremías,NVI
+25,Lamentaciones,NVI
+26,Ezequiel,NVI
+27,Daniel,NVI
+28,Oseas,NVI
+29,Joel,NVI
+30,Amós,NVI
+31,Abdías,NVI
+32,Jonás,NVI
+33,Miqueas,NVI
+34,Nahúm,NVI
+35,Habacuc,NVI
+36,Sofonías,NVI
+37,Hageo,NVI
+38,Zacarías,NVI
+39,Malaquías,NVI
+40,Mateo,NVI
+41,Marcos,NVI
+42,Lucas,NVI
+43,Juan,NVI
+44,Hechos,NVI
+45,Romanos,NVI
+46,1 Corintios,NVI
+47,2 Corintios,NVI
+48,Gálatas,NVI
+49,Efesios,NVI
+50,Filipenses,NVI
+51,Colosenses,NVI
+52,1 Tesalonicenses,NVI
+53,2 Tesalonicenses,NVI
+54,1 Timoteo,NVI
+55,2 Timoteo,NVI
+56,Tito,NVI
+57,Filemón,NVI
+58,Hebreos,NVI
+59,Santiago,NVI
+60,1 Pedro,NVI
+61,2 Pedro,NVI
+62,1 Juan,NVI
+63,2 Juan,NVI
+64,3 Juan,NVI
+65,Judas,NVI
+66,Apocalipsis,NVI

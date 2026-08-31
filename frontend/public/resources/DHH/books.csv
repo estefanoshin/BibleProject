@@ -1,0 +1,67 @@
+book_id,name,version
+1,Génesis,DHH
+2,Éxodo,DHH
+3,Levítico,DHH
+4,Números,DHH
+5,Deuteronomio,DHH
+6,Josué,DHH
+7,Jueces,DHH
+8,Rut,DHH
+9,1 Samuel,DHH
+10,2 Samuel,DHH
+11,1 Reyes,DHH
+12,2 Reyes,DHH
+13,1 Crónicas,DHH
+14,2 Crónicas,DHH
+15,Esdras,DHH
+16,Nehemías,DHH
+17,Ester,DHH
+18,Job,DHH
+19,Salmos,DHH
+20,Proverbios,DHH
+21,Eclesiastés,DHH
+22,Cantares,DHH
+23,Isaías,DHH
+24,Jeremías,DHH
+25,Lamentaciones,DHH
+26,Ezequiel,DHH
+27,Daniel,DHH
+28,Oseas,DHH
+29,Joel,DHH
+30,Amós,DHH
+31,Abdías,DHH
+32,Jonás,DHH
+33,Miqueas,DHH
+34,Nahúm,DHH
+35,Habacuc,DHH
+36,Sofonías,DHH
+37,Hageo,DHH
+38,Zacarías,DHH
+39,Malaquías,DHH
+40,Mateo,DHH
+41,Marcos,DHH
+42,Lucas,DHH
+43,Juan,DHH
+44,Hechos,DHH
+45,Romanos,DHH
+46,1 Corintios,DHH
+47,2 Corintios,DHH
+48,Gálatas,DHH
+49,Efesios,DHH
+50,Filipenses,DHH
+51,Colosenses,DHH
+52,1 Tesalonicenses,DHH
+53,2 Tesalonicenses,DHH
+54,1 Timoteo,DHH
+55,2 Timoteo,DHH
+56,Tito,DHH
+57,Filemón,DHH
+58,Hebreos,DHH
+59,Santiago,DHH
+60,1 Pedro,DHH
+61,2 Pedro,DHH
+62,1 Juan,DHH
+63,2 Juan,DHH
+64,3 Juan,DHH
+65,Judas,DHH
+66,Apocalipsis,DHH

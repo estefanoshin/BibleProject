@@ -1,0 +1,67 @@
+book_id,name,version
+1,Génesis,KOERV
+2,Éxodo,KOERV
+3,Levítico,KOERV
+4,Números,KOERV
+5,Deuteronomio,KOERV
+6,Josué,KOERV
+7,Jueces,KOERV
+8,Rut,KOERV
+9,1 Samuel,KOERV
+10,2 Samuel,KOERV
+11,1 Reyes,KOERV
+12,2 Reyes,KOERV
+13,1 Crónicas,KOERV
+14,2 Crónicas,KOERV
+15,Esdras,KOERV
+16,Nehemías,KOERV
+17,Ester,KOERV
+18,Job,KOERV
+19,Salmos,KOERV
+20,Proverbios,KOERV
+21,Eclesiastés,KOERV
+22,Cantares,KOERV
+23,Isaías,KOERV
+24,Jeremías,KOERV
+25,Lamentaciones,KOERV
+26,Ezequiel,KOERV
+27,Daniel,KOERV
+28,Oseas,KOERV
+29,Joel,KOERV
+30,Amós,KOERV
+31,Abdías,KOERV
+32,Jonás,KOERV
+33,Miqueas,KOERV
+34,Nahúm,KOERV
+35,Habacuc,KOERV
+36,Sofonías,KOERV
+37,Hageo,KOERV
+38,Zacarías,KOERV
+39,Malaquías,KOERV
+40,Mateo,KOERV
+41,Marcos,KOERV
+42,Lucas,KOERV
+43,Juan,KOERV
+44,Hechos,KOERV
+45,Romanos,KOERV
+46,1 Corintios,KOERV
+47,2 Corintios,KOERV
+48,Gálatas,KOERV
+49,Efesios,KOERV
+50,Filipenses,KOERV
+51,Colosenses,KOERV
+52,1 Tesalonicenses,KOERV
+53,2 Tesalonicenses,KOERV
+54,1 Timoteo,KOERV
+55,2 Timoteo,KOERV
+56,Tito,KOERV
+57,Filemón,KOERV
+58,Hebreos,KOERV
+59,Santiago,KOERV
+60,1 Pedro,KOERV
+61,2 Pedro,KOERV
+62,1 Juan,KOERV
+63,2 Juan,KOERV
+64,3 Juan,KOERV
+65,Judas,KOERV
+66,Apocalipsis,KOERV

@@ -104,6 +104,30 @@ task android      # build web app, sync Capacitor, run on Android emulator
 
 `task ios` / `task android` expect Node at `~/.nvm/versions/node/v20.19.2/bin`. Override the Android AVD with `ANDROID_AVD`, or pick an iOS simulator with `IOS_SIMULATOR`.
 
+## Fetching a Bible Gateway version
+
+`scripts/scrapper/fetch.py` downloads a translation from Bible Gateway and writes CSVs the frontend can bundle. It needs Python 3.
+
+```bash
+python scripts/scrapper/fetch.py
+```
+
+The script prints `Input version to fetch`. Enter the Bible Gateway version code (for example `NVI`, `DHH`). That value is used as:
+
+- the `version` query sent to Bible Gateway
+- the `version` column in `books.csv`
+- the output folder name under `frontend/public/resources/`
+
+Example for `NVI`:
+
+- `frontend/public/resources/NVI/books.csv`
+- `frontend/public/resources/NVI/chapters.csv`
+- `frontend/public/resources/NVI/versicles.csv`
+
+HTML responses are cached under `/tmp/bible_custom_cache` (keyed by version, book, and chapter).
+
+`scripts/scrapper/fetch_rva2015.py` is the same scraper with **RVA-2015** hardcoded; use `fetch.py` for any other version.
+
 ## HTTP API
 
 All Bible routes are under `/api`. CORS allows the Vite origin and Capacitor.
