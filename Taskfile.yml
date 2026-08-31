@@ -14,6 +14,7 @@ vars:
   BUILDS_DIR: '{{.ROOT_DIR}}/builds'
   ANDROID_BUILD_OUT: '{{.BUILDS_DIR}}/app-debug-apk'
   IOS_BUILD_OUT: '{{.BUILDS_DIR}}/app-debug-ipa'
+  NATIVE_ACTION_FILE: '{{.BUILDS_DIR}}/.native-action'
   NODE_VERSION: 20.19.2
   NODE_BIN: '{{.HOME}}/.nvm/versions/node/v{{.NODE_VERSION}}/bin'
 
@@ -51,6 +52,8 @@ tasks:
   deploy:
     desc: Build the web app. Use `task deploy ios` or `task deploy android`
     cmds:
+      - mkdir -p '{{.BUILDS_DIR}}'
+      - printf '%s' run > '{{.NATIVE_ACTION_FILE}}'
       - task: frontend:build
 
   deploy-api:
@@ -73,7 +76,9 @@ tasks:
         vars:
           API_URL: '{{.IOS_API_URL}}'
       - task: ios:sync
-      - task: ios:run
+      - task: ios:package-if-requested
+      - task: ios:run-if-requested
+      - task: native:clear-action
 
   android:
     aliases: [deploy:android]
@@ -83,11 +88,15 @@ tasks:
         vars:
           API_URL: '{{.ANDROID_API_URL}}'
       - task: android:sync
-      - task: android:run
+      - task: android:package-if-requested
+      - task: android:run-if-requested
+      - task: native:clear-action
 
   build:
     desc: Package native apps. Use `task build ios` or `task build android`
     cmds:
+      - mkdir -p '{{.BUILDS_DIR}}'
+      - printf '%s' package > '{{.NATIVE_ACTION_FILE}}'
       - task: frontend:build
 
   build:android:
@@ -134,9 +143,42 @@ tasks:
     cmds:
       - node '{{.ROOT_DIR}}/scripts/cap.cjs' sync android
 
+  native:clear-action:
+    internal: true
+    cmds:
+      - rm -f '{{.NATIVE_ACTION_FILE}}'
+
+  ios:package-if-requested:
+    internal: true
+    status:
+      - test ! -f '{{.NATIVE_ACTION_FILE}}' || [ "$(cat '{{.NATIVE_ACTION_FILE}}')" != package ]
+    cmds:
+      - task: ios:package
+
+  ios:run-if-requested:
+    internal: true
+    status:
+      - test -f '{{.NATIVE_ACTION_FILE}}' && [ "$(cat '{{.NATIVE_ACTION_FILE}}')" = package ]
+    cmds:
+      - task: ios:run
+
+  android:package-if-requested:
+    internal: true
+    status:
+      - test ! -f '{{.NATIVE_ACTION_FILE}}' || [ "$(cat '{{.NATIVE_ACTION_FILE}}')" != package ]
+    cmds:
+      - task: android:package
+
+  android:run-if-requested:
+    internal: true
+    status:
+      - test -f '{{.NATIVE_ACTION_FILE}}' && [ "$(cat '{{.NATIVE_ACTION_FILE}}')" = package ]
+    cmds:
+      - task: android:run
+
   ios:package:
     internal: true
-    desc: Build the iOS debug app and copy it to builds/app-debug-ipa
+    desc: Build the iOS debug IPA and copy it to builds/app-debug-ipa
     preconditions:
       - sh: test -d '{{.IOS_WORKSPACE}}'
         msg: iOS Xcode workspace not found
@@ -157,10 +199,15 @@ tasks:
 
         APP="{{.IOS_DERIVED_DATA}}/Build/Products/Debug-iphonesimulator/App.app"
         OUT="{{.IOS_BUILD_OUT}}"
+        IPA="$OUT/app-debug.ipa"
         mkdir -p "$OUT"
-        rm -rf "$OUT/App.app"
-        cp -R "$APP" "$OUT/"
-        echo "iOS app copied to $OUT/App.app"
+        rm -rf "$OUT/App.app" "$IPA"
+        STAGE="$(mktemp -d)"
+        mkdir -p "$STAGE/Payload"
+        cp -R "$APP" "$STAGE/Payload/App.app"
+        (cd "$STAGE" && zip -qry "$IPA" Payload)
+        rm -rf "$STAGE"
+        echo "iOS IPA copied to $IPA"
 
   android:package:
     internal: true
@@ -195,7 +242,7 @@ tasks:
     cmds:
       - |
         set -euo pipefail
-        UDID="$(python3 "{{.ROOT_DIR}}/scripts/pick_ios_simulator.py" ${IOS_SIMULATOR:+"$IOS_SIMULATOR"})"
+        UDID="$(python3 "{{.ROOT_DIR}}/scripts/pick_ios_simulator.py" "${IOS_SIMULATOR:-}")"
 
         xcrun simctl boot "$UDID" >/dev/null 2>&1 || true
         open -a Simulator --args -CurrentDeviceUDID "$UDID"

@@ -3,6 +3,7 @@
 .DS_Store
 .env
 
+/builds/.native-action
 /builds/app-debug-apk/*
 !/builds/app-debug-apk/.gitkeep
 /builds/app-debug-ipa/*
