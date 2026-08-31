@@ -1,5 +1,8 @@
 {
   "appId": "com.eshin.bible",
   "appName": "Bible",
-  "webDir": "dist"
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "http"
+  }
 }

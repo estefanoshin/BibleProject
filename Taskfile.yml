@@ -1,5 +1,7 @@
 version: "3"
 
+dotenv: ['.env']
+
 vars:
   FRONTEND_DIR: frontend
   API_DIR: BibleAPI
@@ -37,6 +39,9 @@ tasks:
     dir: '{{.FRONTEND_DIR}}'
     env:
       PATH: '{{.NODE_BIN}}:{{.PATH}}'
+      # Baked into the bundle at build time. Empty means "same origin", which is
+      # what the browser build wants; the native builds override it.
+      VITE_API_URL: '{{.API_URL}}'
     preconditions:
       - sh: test -x '{{.NODE_BIN}}/node'
         msg: 'Node v{{.NODE_VERSION}} not found. Run `nvm install {{.NODE_VERSION}}`'
@@ -63,16 +68,20 @@ tasks:
   ios:
     aliases: [deploy:ios]
     desc: Compile and deploy the iOS app to the Simulator
-    deps: [deploy]
     cmds:
+      - task: frontend:build
+        vars:
+          API_URL: '{{.IOS_API_URL}}'
       - task: ios:sync
       - task: ios:run
 
   android:
     aliases: [deploy:android]
     desc: Compile and deploy the Android app to an emulator
-    deps: [deploy]
     cmds:
+      - task: frontend:build
+        vars:
+          API_URL: '{{.ANDROID_API_URL}}'
       - task: android:sync
       - task: android:run
 
@@ -83,15 +92,19 @@ tasks:
 
   build:android:
     desc: Compile the Android debug APK into builds/app-debug-apk
-    deps: [build]
     cmds:
+      - task: frontend:build
+        vars:
+          API_URL: '{{.ANDROID_API_URL}}'
       - task: android:sync
       - task: android:package
 
   build:ios:
     desc: Compile the iOS debug app into builds/app-debug-ipa
-    deps: [build]
     cmds:
+      - task: frontend:build
+        vars:
+          API_URL: '{{.IOS_API_URL}}'
       - task: ios:sync
       - task: ios:package
 
@@ -163,10 +176,7 @@ tasks:
     cmds:
       - |
         set -euo pipefail
-        (
-          cd "{{.ANDROID_DIR}}"
-          ./gradlew assembleDebug
-        )
+        "{{.ANDROID_DIR}}/gradlew" -p "{{.ANDROID_DIR}}" assembleDebug
         APK="{{.ANDROID_DIR}}/app/build/outputs/apk/debug/app-debug.apk"
         OUT="{{.ANDROID_BUILD_OUT}}"
         mkdir -p "$OUT"
@@ -249,8 +259,5 @@ tasks:
           SERIAL="$(adb devices | awk '/emulator-.*device$/{print $1; exit}')"
         fi
 
-        (
-          cd "{{.ANDROID_DIR}}"
-          ./gradlew installDebug
-        )
+        "{{.ANDROID_DIR}}/gradlew" -p "{{.ANDROID_DIR}}" installDebug
         adb -s "$SERIAL" shell am start -n "{{.APP_ID}}/.MainActivity"

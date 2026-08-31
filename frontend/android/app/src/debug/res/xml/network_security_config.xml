@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Debug-only: the local API is served over plain HTTP, which Android
+         blocks by default since API 28. This file is not part of release
+         builds, so shipped APKs keep cleartext traffic disabled. -->
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>
