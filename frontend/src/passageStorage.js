@@ -1,10 +1,22 @@
 import { useEffect, useState } from 'react'
+import {
+  createComment,
+  createSavedPassage,
+  fetchComments,
+  fetchSavedPassages,
+  removeComment,
+  removeSavedPassage,
+  updateComment,
+} from './api'
+import { usesRemoteStorage } from './appConfig'
+import { canonicalBookIdFor } from './chapterIdentity'
 import { hydrateDurable, persistDurable } from './durableAccount'
 
 const SAVED_PASSAGES_KEY = 'bible.savedPassages.v1'
 const PASSAGE_NOTES_KEY = 'bible.passageNotes.v1'
 
 const listeners = new Set()
+let remote = false
 
 function notify() {
   for (const listener of listeners) {
@@ -51,18 +63,77 @@ function mergeById(primary, extra) {
 let savedPassages = readLocalItems(SAVED_PASSAGES_KEY)
 let passageNotes = readLocalItems(PASSAGE_NOTES_KEY)
 
-function persist() {
+function persistLocal() {
   writeLocalItems(SAVED_PASSAGES_KEY, savedPassages)
   writeLocalItems(PASSAGE_NOTES_KEY, passageNotes)
   persistDurable({ savedPassages, passageNotes })
   notify()
 }
 
+function persist() {
+  if (!remote) {
+    persistLocal()
+    return
+  }
+  notify()
+}
+
+async function noteFromApi(row) {
+  const canonicalBookId = (await canonicalBookIdFor(row.version, row.bookId)) ?? row.bookId
+  return {
+    id: String(row.id),
+    note: row.comment,
+    savedAt: row.date,
+    version: row.version,
+    bookId: row.bookId,
+    chapterId: row.chapterId,
+    canonicalBookId,
+    chapterNumber: row.chapterNumber,
+    bookName: row.bookName,
+    reference: `${row.bookName} ${row.chapterNumber}:${row.verseNumber}`,
+    verses: [
+      {
+        verseId: row.versicleId,
+        verseNumber: row.verseNumber,
+        text: row.verseText,
+      },
+    ],
+  }
+}
+
+function passageFromApi(row) {
+  return {
+    id: String(row.id),
+    savedAt: row.date,
+    version: row.version,
+    bookId: row.bookId,
+    chapterId: row.chapterId,
+    canonicalBookId: row.canonicalBookId,
+    chapterNumber: row.chapterNumber,
+    bookName: row.bookName,
+    reference: row.reference,
+    verses: asList(row.verses),
+  }
+}
+
 export async function hydratePassageStorage() {
+  remote = await usesRemoteStorage()
+  if (remote) {
+    try {
+      const [comments, passages] = await Promise.all([fetchComments(), fetchSavedPassages()])
+      passageNotes = await Promise.all(asList(comments).map(noteFromApi))
+      savedPassages = asList(passages).map(passageFromApi)
+    } catch {
+      passageNotes = []
+      savedPassages = []
+    }
+    notify()
+    return
+  }
   const payload = await hydrateDurable()
   savedPassages = mergeById(savedPassages, payload.savedPassages)
   passageNotes = mergeById(passageNotes, payload.passageNotes)
-  persist()
+  persistLocal()
 }
 
 function passageId(passage) {
@@ -78,9 +149,38 @@ export function verseNoteKey(canonicalBookId, chapterNumber, verseNumber) {
   return `${canonicalBookId}:${chapterNumber}:${verseNumber}`
 }
 
-export function savePassage(passage) {
+export async function savePassage(passage) {
   if (!passage?.verses?.length) {
     return false
+  }
+  if (remote) {
+    const fingerprint = passageId(passage)
+    const existing = savedPassages.find((entry) => passageId(entry) === fingerprint)
+    if (existing) {
+      try {
+        await removeSavedPassage(existing.id)
+      } catch {
+        return false
+      }
+    }
+    try {
+      const created = await createSavedPassage({
+        version: passage.version,
+        bookId: passage.bookId,
+        chapterId: Number(passage.chapterId),
+        canonicalBookId: passage.canonicalBookId,
+        chapterNumber: passage.chapterNumber,
+        bookName: passage.bookName,
+        reference: passage.reference,
+        verses: passage.verses,
+      })
+      const item = passageFromApi(created)
+      savedPassages = [item, ...savedPassages.filter((entry) => entry.id !== existing?.id)]
+      persist()
+      return true
+    } catch {
+      return false
+    }
   }
   const id = passageId(passage)
   const item = { ...passage, id, savedAt: new Date().toISOString() }
@@ -89,11 +189,26 @@ export function savePassage(passage) {
   return true
 }
 
-export function saveVerseNote(passage, note) {
+export async function saveVerseNote(passage, note) {
   const text = note.trim()
   const verse = passage?.verses?.[0]
   if (!text || !verse || passage.verses.length !== 1) {
     return false
+  }
+  if (remote) {
+    try {
+      const created = await createComment({
+        versicleId: verse.verseId,
+        comment: text,
+        version: passage.version,
+      })
+      const item = await noteFromApi(created)
+      passageNotes = [item, ...passageNotes]
+      persist()
+      return true
+    } catch {
+      return false
+    }
   }
   const item = {
     ...passage,
@@ -108,10 +223,21 @@ export function saveVerseNote(passage, note) {
   return true
 }
 
-export function updatePassageNote(id, note) {
+export async function updatePassageNote(id, note) {
   const text = note.trim()
   if (!id || !text) {
     return false
+  }
+  if (remote) {
+    try {
+      const updated = await updateComment(id, text)
+      const item = await noteFromApi(updated)
+      passageNotes = passageNotes.map((entry) => (entry.id === String(id) ? item : entry))
+      persist()
+      return true
+    } catch {
+      return false
+    }
   }
   let found = false
   passageNotes = passageNotes.map((entry) => {
@@ -128,7 +254,17 @@ export function updatePassageNote(id, note) {
   return true
 }
 
-export function deleteSavedPassage(id) {
+export async function deleteSavedPassage(id) {
+  if (remote) {
+    try {
+      await removeSavedPassage(id)
+    } catch {
+      return false
+    }
+    savedPassages = savedPassages.filter((entry) => entry.id !== String(id))
+    persist()
+    return true
+  }
   const next = savedPassages.filter((entry) => entry.id !== id)
   if (next.length === savedPassages.length) {
     return false
@@ -138,7 +274,17 @@ export function deleteSavedPassage(id) {
   return true
 }
 
-export function deletePassageNote(id) {
+export async function deletePassageNote(id) {
+  if (remote) {
+    try {
+      await removeComment(id)
+    } catch {
+      return false
+    }
+    passageNotes = passageNotes.filter((entry) => entry.id !== String(id))
+    persist()
+    return true
+  }
   const next = passageNotes.filter((entry) => entry.id !== id)
   if (next.length === passageNotes.length) {
     return false

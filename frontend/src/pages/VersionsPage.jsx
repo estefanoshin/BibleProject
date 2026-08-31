@@ -41,7 +41,6 @@ export default function VersionsPage() {
     <section className="page">
       <PageHeader
         title={t(lang, 'appTitle')}
-        subtitle={t(lang, 'appSubtitle')}
         lang={lang}
       />
       <StatusMessage

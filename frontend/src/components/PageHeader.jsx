@@ -36,7 +36,16 @@ function BookmarkIcon() {
 
 // The bar sticks for the whole page, so the title travels with it instead of
 // living in a separate header block.
-export function PageHeader({ title, subtitle, backTo, backLabel, onBack, barActions, lang = SPANISH }) {
+export function PageHeader({
+  title,
+  subtitle,
+  backTo,
+  backLabel,
+  onBack,
+  barActions,
+  titleActions,
+  lang = SPANISH,
+}) {
   const route = useRoute()
 
   function handleLibrary(event, name) {
@@ -46,48 +55,63 @@ export function PageHeader({ title, subtitle, backTo, backLabel, onBack, barActi
     }
   }
 
+  const backControl = onBack ? (
+    <button type="button" className="back-button" onClick={onBack}>
+      <BackIcon />
+      <span>{backLabel ?? t(lang, 'back')}</span>
+    </button>
+  ) : backTo ? (
+    <a className="back-button" href={backTo}>
+      <BackIcon />
+      <span>{backLabel ?? t(lang, 'back')}</span>
+    </a>
+  ) : null
+
+  const titleBlock = (
+    <div className="back-bar-title">
+      <h1>{title}</h1>
+      {subtitle ? <p className="subtitle">{subtitle}</p> : null}
+    </div>
+  )
+  // Without a back button or title toggles there is nothing to fill a second
+  // row, so the title shares the line with the library buttons instead.
+  const inlineTitle = !backControl && !titleActions
+
   return (
     <header className="back-bar">
-      <div className="back-bar-side">
-        {onBack ? (
-          <button type="button" className="back-button" onClick={onBack}>
-            <BackIcon />
-            <span>{backLabel ?? t(lang, 'back')}</span>
-          </button>
-        ) : backTo ? (
-          <a className="back-button" href={backTo}>
-            <BackIcon />
-            <span>{backLabel ?? t(lang, 'back')}</span>
+      <div className={inlineTitle ? 'back-bar-nav centered-title' : 'back-bar-nav'}>
+        {backControl}
+        {inlineTitle ? titleBlock : null}
+        <div className="back-bar-actions">
+          {barActions}
+          <a
+            className="select-toggle"
+            href="#/notes"
+            title={t(lang, 'savedNotes')}
+            aria-label={t(lang, 'savedNotes')}
+            aria-current={route.name === 'notes' ? 'page' : undefined}
+            onClick={(event) => handleLibrary(event, 'notes')}
+          >
+            <NotesIcon />
           </a>
-        ) : null}
+          <a
+            className="select-toggle"
+            href="#/saved"
+            title={t(lang, 'savedPassages')}
+            aria-label={t(lang, 'savedPassages')}
+            aria-current={route.name === 'saved' ? 'page' : undefined}
+            onClick={(event) => handleLibrary(event, 'saved')}
+          >
+            <BookmarkIcon />
+          </a>
+        </div>
       </div>
-      <div className="back-bar-title">
-        <h1>{title}</h1>
-        {subtitle ? <p className="subtitle">{subtitle}</p> : null}
-      </div>
-      <div className="back-bar-side back-bar-actions">
-        {barActions}
-        <a
-          className="select-toggle"
-          href="#/notes"
-          title={t(lang, 'savedNotes')}
-          aria-label={t(lang, 'savedNotes')}
-          aria-current={route.name === 'notes' ? 'page' : undefined}
-          onClick={(event) => handleLibrary(event, 'notes')}
-        >
-          <NotesIcon />
-        </a>
-        <a
-          className="select-toggle"
-          href="#/saved"
-          title={t(lang, 'savedPassages')}
-          aria-label={t(lang, 'savedPassages')}
-          aria-current={route.name === 'saved' ? 'page' : undefined}
-          onClick={(event) => handleLibrary(event, 'saved')}
-        >
-          <BookmarkIcon />
-        </a>
-      </div>
+      {inlineTitle ? null : (
+        <div className="back-bar-heading">
+          {titleBlock}
+          {titleActions ? <div className="back-bar-title-actions">{titleActions}</div> : null}
+        </div>
+      )}
     </header>
   )
 }

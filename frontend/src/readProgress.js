@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { fetchReadProgress, replaceReadProgress } from './api'
+import { usesRemoteStorage } from './appConfig'
 import { canonicalChapterNumbers } from './bookCatalog'
 import { hydrateDurable, persistDurable } from './durableAccount'
 
@@ -8,6 +10,8 @@ const STORAGE_KEY = 'bible.readChapters.v2'
 const BOOK_CHAPTERS_KEY = 'bible.bookChapters.v2'
 
 const listeners = new Set()
+let remote = false
+let persistChain = Promise.resolve()
 
 function notify() {
   for (const listener of listeners) {
@@ -85,6 +89,15 @@ function writeLocal() {
 }
 
 function persist() {
+  if (remote) {
+    const payload = {
+      readChapters: [...chapterKeys],
+      bookChapters,
+    }
+    persistChain = persistChain.then(() => replaceReadProgress(payload)).catch(() => {})
+    notify()
+    return
+  }
   writeLocal()
   persistDurable({
     readChapters: [...chapterKeys],
@@ -105,6 +118,19 @@ function mergeBookMaps(primary, extra) {
 }
 
 export async function hydrateReadProgress() {
+  remote = await usesRemoteStorage()
+  if (remote) {
+    try {
+      const payload = await fetchReadProgress()
+      chapterKeys = parseKeySet(payload?.readChapters)
+      bookChapters = parseBookMap(payload?.bookChapters)
+    } catch {
+      chapterKeys = new Set()
+      bookChapters = {}
+    }
+    notify()
+    return
+  }
   const payload = await hydrateDurable()
   chapterKeys = new Set([...chapterKeys, ...parseKeySet(payload.readChapters)])
   bookChapters = mergeBookMaps(bookChapters, parseBookMap(payload.bookChapters))

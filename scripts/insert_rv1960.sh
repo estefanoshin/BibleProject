@@ -131,6 +131,7 @@ echo "Creating tables and loading RV-1960 data into ${DATABASE}"
 run_sql <<SQL
 SET NOCOUNT ON;
 
+IF OBJECT_ID(N'dbo.comments', N'U') IS NOT NULL DROP TABLE dbo.comments;
 IF OBJECT_ID(N'dbo.versicles', N'U') IS NOT NULL DROP TABLE dbo.versicles;
 IF OBJECT_ID(N'dbo.chapters', N'U') IS NOT NULL DROP TABLE dbo.chapters;
 IF OBJECT_ID(N'dbo.books', N'U') IS NOT NULL DROP TABLE dbo.books;
@@ -166,6 +167,52 @@ CREATE TABLE dbo.versicles_staging (
   vNum INT NOT NULL,
   text_hex VARCHAR(MAX) NULL
 );
+
+IF OBJECT_ID(N'dbo.comments', N'U') IS NULL
+BEGIN
+  CREATE TABLE dbo.comments (
+    comment_id INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_comments PRIMARY KEY,
+    versicle_id INT NOT NULL,
+    comment NVARCHAR(MAX) NOT NULL,
+    version NVARCHAR(50) NOT NULL,
+    [date] DATETIME2 NOT NULL CONSTRAINT DF_comments_date DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT FK_comments_versicle FOREIGN KEY (versicle_id) REFERENCES dbo.versicles (versicle_id) ON DELETE CASCADE
+  );
+END;
+
+IF OBJECT_ID(N'dbo.saved_passages', N'U') IS NULL
+BEGIN
+  CREATE TABLE dbo.saved_passages (
+    passage_id INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_saved_passages PRIMARY KEY,
+    version NVARCHAR(50) NOT NULL,
+    book_id INT NOT NULL,
+    chapter_id INT NOT NULL,
+    canonical_book_id INT NOT NULL,
+    chapter_number INT NOT NULL,
+    book_name NVARCHAR(200) NOT NULL,
+    reference NVARCHAR(400) NOT NULL,
+    verses_json NVARCHAR(MAX) NOT NULL,
+    [date] DATETIME2 NOT NULL CONSTRAINT DF_saved_passages_date DEFAULT SYSUTCDATETIME()
+  );
+END;
+
+IF OBJECT_ID(N'dbo.read_chapters', N'U') IS NULL
+BEGIN
+  CREATE TABLE dbo.read_chapters (
+    canonical_book_id INT NOT NULL,
+    chapter_number INT NOT NULL,
+    CONSTRAINT PK_read_chapters PRIMARY KEY (canonical_book_id, chapter_number)
+  );
+END;
+
+IF OBJECT_ID(N'dbo.book_chapter_numbers', N'U') IS NULL
+BEGIN
+  CREATE TABLE dbo.book_chapter_numbers (
+    canonical_book_id INT NOT NULL,
+    chapter_number INT NOT NULL,
+    CONSTRAINT PK_book_chapter_numbers PRIMARY KEY (canonical_book_id, chapter_number)
+  );
+END;
 
 BULK INSERT dbo.books
 FROM '${IMPORT_DIR}/books.csv'

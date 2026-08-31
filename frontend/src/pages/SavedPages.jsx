@@ -203,8 +203,8 @@ function SavedList({ items, lang, lines, confirmKey, onDelete }) {
           title={t(lang, confirmKey)}
           reference={pending.reference}
           onCancel={() => setPending(null)}
-          onConfirm={() => {
-            onDelete(pending.id)
+          onConfirm={async () => {
+            await onDelete(pending.id)
             setPending(null)
           }}
         />

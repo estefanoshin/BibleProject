@@ -233,7 +233,7 @@ export default function BooksPage({ version }) {
     onToggle: toggleBook,
   }
 
-  const barActions = (
+  const titleActions = (
     <>
       <button
         type="button"
@@ -254,18 +254,21 @@ export default function BooksPage({ version }) {
       >
         {isGrid ? <ListIcon /> : <GridIcon />}
       </button>
-      <button
-        type="button"
-        className="select-toggle"
-        onClick={toggleSelecting}
-        disabled={books.length === 0}
-        title={t(lang, 'selectBooks')}
-        aria-label={t(lang, 'selectBooks')}
-        aria-pressed={selecting}
-      >
-        <SelectIcon />
-      </button>
     </>
+  )
+
+  const barActions = (
+    <button
+      type="button"
+      className="select-toggle"
+      onClick={toggleSelecting}
+      disabled={books.length === 0}
+      title={t(lang, 'selectBooks')}
+      aria-label={t(lang, 'selectBooks')}
+      aria-pressed={selecting}
+    >
+      <SelectIcon />
+    </button>
   )
 
   return (
@@ -276,6 +279,7 @@ export default function BooksPage({ version }) {
         backTo="#/"
         backLabel={t(lang, 'versions')}
         barActions={barActions}
+        titleActions={titleActions}
         lang={lang}
       />
       <StatusMessage

@@ -31,6 +31,10 @@ class BibleNavigationControllerTest {
 
     @BeforeEach
     void seedBible() throws IOException {
+        jdbcTemplate.execute("DROP TABLE IF EXISTS comments");
+        jdbcTemplate.execute("DROP TABLE IF EXISTS saved_passages");
+        jdbcTemplate.execute("DROP TABLE IF EXISTS read_chapters");
+        jdbcTemplate.execute("DROP TABLE IF EXISTS book_chapter_numbers");
         jdbcTemplate.execute("DROP TABLE IF EXISTS versicles");
         jdbcTemplate.execute("DROP TABLE IF EXISTS chapters");
         jdbcTemplate.execute("DROP TABLE IF EXISTS books");

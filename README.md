@@ -2,7 +2,14 @@
 
 A Spanish Bible reader: a React web app (also packaged with Capacitor for iOS and Android) and a Spring Boot API backed by SQL Server.
 
-You can browse versions, books, and chapters, read verses, and mark chapters as read (stored in the browser). Bundled CSV translations:
+You can browse versions, books, and chapters; search inside a chapter; swipe between chapters; mark chapters or whole books as read; save passages; and attach notes to a verse. UI strings follow the translation language (Spanish, English, or Korean).
+
+**Where data lives**
+
+- **Offline mode on** (`frontend/config.json` `"offline": true`, and API `OFFLINE=true`): Bible text comes from bundled CSVs. Notes, saved passages, and read progress stay on the device (`localStorage`, plus Capacitor persistent account on native).
+- **Offline mode off**: the API reads Bible text and user data from SQL Server. The web app calls `/api` for those actions instead of writing to the device.
+
+Bundled CSV translations:
 
 - **Reina-Valera 1960** (`RV-1960`)
 - **Reina-Valera Actualizada 2015** (`RVA-2015`)
@@ -20,7 +27,8 @@ You can browse versions, books, and chapters, read verses, and mark chapters as 
 | `frontend/` | React + Vite UI (`Biblia`), Capacitor iOS/Android projects |
 | `BibleAPI/` | Spring Boot 4 API (Java 21), OpenAPI / Swagger UI |
 | `frontend/public/resources/` | CSV source data bundled with the web app |
-| `scripts/` | SQL Server container, CSV import, Capacitor helpers |
+| `frontend/config.json` | Frontend offline flag and `api_url` (copy from `config_template.json`) |
+| `scripts/` | SQL Server container, schema, CSV import, Capacitor helpers |
 | `Taskfile.yml` | Common local commands |
 
 ## Prerequisites
@@ -38,9 +46,10 @@ You can browse versions, books, and chapters, read verses, and mark chapters as 
 
 ```bash
 cp .env_template .env
+cp frontend/config_template.json frontend/config.json
 ```
 
-Fill in SQL Server credentials. The API and import scripts read this file. Typical local values:
+Fill in SQL Server credentials. The API and import scripts read `.env`. Typical local values:
 
 - `MSSQL_HOST=localhost`
 - `MSSQL_PORT=1435`
@@ -50,15 +59,28 @@ Fill in SQL Server credentials. The API and import scripts read this file. Typic
 
 Set `MSSQL_SA_PASSWORD` to a password that meets SQL Server complexity rules. Do not commit `.env`.
 
+`OFFLINE` in `.env` controls the API. `offline` in `frontend/config.json` controls the web app. Keep them in sync: both `true` to read CSVs on-device, both `false` to use SQL Server.
+
 ### 2. Database
 
-Start SQL Server 2022 in Docker (host port `1435` by default):
+Start SQL Server 2022 in Docker (host port `1435` by default) and create empty tables:
 
 ```bash
 ./scripts/create_database.sh
 ```
 
-Load translations. **Run RV-1960 first** — that script recreates `books`, `chapters`, and `versicles`. The other insert scripts load alongside it without wiping existing versions:
+Tables:
+
+| Table | Purpose |
+| --- | --- |
+| `books`, `chapters`, `versicles` | Bible text (verse body is gzip-compressed `VARBINARY`) |
+| `comments` | Verse notes: `versicle_id`, `comment`, `version`, `date` |
+| `saved_passages` | Bookmarked verse ranges |
+| `read_chapters`, `book_chapter_numbers` | Chapters marked read (canonical book + chapter number, shared across translations) |
+
+`create_database.sh` is safe to run again: it starts the container if needed and creates any missing tables.
+
+Load translations. **Run RV-1960 first** — that script recreates `books`, `chapters`, and `versicles` (and an empty `comments` table). The other insert scripts load alongside it without wiping other versions:
 
 ```bash
 ./scripts/insert_rv1960.sh
@@ -72,13 +94,13 @@ Load translations. **Run RV-1960 first** — that script recreates `books`, `cha
 ./scripts/insert_klb.sh
 ```
 
-Or load several folders at once:
+Or load several folders at once (after RV-1960):
 
 ```bash
 ./scripts/insert_version.sh RVA2015 DHH NVI NTV KJV NLT KOERV KLB
 ```
 
-Verse text is stored gzip-compressed in SQL Server.
+Re-importing a version deletes that version’s verses and any comments/saved passages that pointed at them.
 
 ### 3. API
 
@@ -88,6 +110,8 @@ Run from `BibleAPI/` (port **5010**). It loads `../.env` for the datasource.
 cd BibleAPI
 ./mvnw spring-boot:run
 ```
+
+Set `OFFLINE=false` in `.env` when you want JDBC + user-data endpoints. With `OFFLINE=true` the API serves Bible routes from classpath CSVs and does not start a DataSource (comments/passages/progress routes are not registered).
 
 Or package and run the API in Docker (SQL Server stays on the host; the container uses `host.docker.internal`):
 
@@ -109,7 +133,9 @@ task start
 
 Opens the Vite dev server at http://localhost:3000. `/api` is proxied to `http://localhost:5010`.
 
-Production-style builds can point at the API with `VITE_API_URL` (defaults to `http://localhost:5010` when not in Vite dev mode).
+For SQL-backed notes and read progress, set `"offline": false` in `frontend/config.json` and keep BibleAPI on `OFFLINE=false`.
+
+Production-style builds can point at the API with `VITE_API_URL` (defaults to `http://localhost:5010` when not in Vite dev mode). Native builds use `ANDROID_API_URL` / `IOS_API_URL` from `.env`.
 
 ## Daily commands
 
@@ -126,6 +152,15 @@ task build:ios-device  # unsigned iPhone IPA → builds/app-device-ipa/app-devic
 
 `task ios` and `task build:ios` produce a **simulator** build. That IPA will not run on a physical iPhone. Use `task build:ios-device` for a real device (see below).
 
+## App features
+
+- Hash routes: versions → books → chapters → reader; `#/notes` and `#/saved` for libraries
+- Grid or list on the books page; search books; select many books or chapters and mark them read
+- Reader: tap verses to copy, share, save, or add a note (notes are one verse at a time)
+- In-chapter text search with next/previous match
+- Switch translation from the reader; chapter swipe left/right
+- Read state is canonical (Genesis 1 marked in NVI is also marked in KJV)
+
 ## Install on an iPhone (no App Store)
 
 Apple does not allow a free, tap-to-install IPA like an Android APK. A free Apple ID can still run the app if each person **re-signs** the unsigned device IPA with **their own** Apple ID. The install lasts about **7 days**, then they must re-sign.
@@ -139,6 +174,8 @@ IOS_API_URL=http://192.168.1.20:5010
 ```
 
 Set that in `.env`, keep BibleAPI running, and make sure the phone can open that URL. If you use `http://` (not HTTPS), iOS may block the request unless App Transport Security allows that host.
+
+With `"offline": false` in the packaged `config.json`, the phone must reach BibleAPI for Bible text and for notes, saved passages, and read progress.
 
 ### 2. Build the device IPA
 
@@ -191,7 +228,7 @@ HTML responses are cached under `/tmp/bible_custom_cache` (keyed by version, boo
 
 ## HTTP API
 
-All Bible routes are under `/api`. CORS allows the Vite origin and Capacitor.
+All Bible and user-data routes are under `/api`. CORS allows the Vite origin and Capacitor. User-data routes exist only when `bible.offline` / `OFFLINE` is `false`.
 
 | Method | Path | Description |
 | --- | --- | --- |
@@ -203,6 +240,15 @@ All Bible routes are under `/api`. CORS allows the Vite origin and Capacitor.
 | `GET` | `/api/chapters/{chapterId}` | One chapter |
 | `GET` | `/api/chapters/{chapterId}/verses` | Verses plus previous/next chapter ids |
 | `GET` | `/api/verses/{verseId}` | One verse |
+| `GET` | `/api/comments` | Verse notes |
+| `POST` | `/api/comments` | Create a note (`versicleId`, `comment`, `version`) |
+| `PATCH` | `/api/comments/{id}` | Update note text |
+| `DELETE` | `/api/comments/{id}` | Delete a note |
+| `GET` | `/api/passages` | Saved passages |
+| `POST` | `/api/passages` | Save a passage |
+| `DELETE` | `/api/passages/{id}` | Delete a saved passage |
+| `GET` | `/api/read-progress` | Marked-read chapter keys and per-book chapter lists |
+| `PUT` | `/api/read-progress` | Replace read progress |
 
 Actuator exposes `/actuator/health` and `/actuator/info`.
 

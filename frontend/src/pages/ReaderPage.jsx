@@ -289,8 +289,8 @@ export default function ReaderPage({ chapterId }) {
     setActionMessage(t(lang, copied ? messageKey : 'copyError'))
   }
 
-  function saveSelection() {
-    const saved = savePassage(selectedPassage())
+  async function saveSelection() {
+    const saved = await savePassage(selectedPassage())
     if (saved) {
       clearSelection()
       return
@@ -313,11 +313,11 @@ export default function ReaderPage({ chapterId }) {
     setViewingKey(key)
   }
 
-  function saveNote() {
+  async function saveNote() {
     if (!note.trim() || selectedVerses.length !== 1) {
       return
     }
-    const saved = saveVerseNote(selectedPassage(), note)
+    const saved = await saveVerseNote(selectedPassage(), note)
     if (saved) {
       clearSelection()
       return
@@ -325,15 +325,15 @@ export default function ReaderPage({ chapterId }) {
     setActionMessage(t(lang, 'passageSaveError'))
   }
 
-  function saveViewedNote(item, text) {
-    const saved = updatePassageNote(item.id, text)
+  async function saveViewedNote(item, text) {
+    const saved = await updatePassageNote(item.id, text)
     setActionMessage(t(lang, saved ? 'noteSaved' : 'passageSaveError'))
     return saved
   }
 
-  function deleteViewedNote(item) {
+  async function deleteViewedNote(item) {
     const lastNote = viewingNotes.length <= 1
-    const deleted = deletePassageNote(item.id)
+    const deleted = await deletePassageNote(item.id)
     if (deleted && lastNote) {
       setViewingKey(null)
     }
@@ -768,8 +768,8 @@ function ViewNoteDialog({ notes, lang, onClose, onSave, onDelete }) {
         lang={lang}
         onChange={setDraft}
         onCancel={() => setEditing(null)}
-        onSave={() => {
-          if (onSave(editing, draft)) {
+        onSave={async () => {
+          if (await onSave(editing, draft)) {
             setEditing(null)
           }
         }}
@@ -806,8 +806,8 @@ function ViewNoteDialog({ notes, lang, onClose, onSave, onDelete }) {
             <button
               type="button"
               className="danger"
-              onClick={() => {
-                onDelete(pendingDelete)
+              onClick={async () => {
+                await onDelete(pendingDelete)
                 setPendingDelete(null)
               }}
             >
